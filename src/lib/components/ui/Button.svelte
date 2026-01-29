@@ -66,9 +66,12 @@
 {:else}
 	<button
 		{type}
-		{disabled}
+		disabled={disabled || loading}
 		class={combinedClasses}
-		{onclick}
+		onclick={() => {
+			console.log('[Button] clicked, onclick:', typeof onclick);
+			onclick?.();
+		}}
 	>
 		{#if loading}
 			<span class="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"></span>

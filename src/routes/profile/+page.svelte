@@ -19,7 +19,9 @@
 	const levelTitle = $derived(auth.profile ? getLevelTitle(auth.profile.level) : null);
 
 	async function handleSignOut() {
+		console.log('[Profile] handleSignOut called');
 		const { error } = await signOut();
+		console.log('[Profile] signOut result:', { error });
 		if (error) {
 			toast.error('Failed to sign out');
 		} else {
