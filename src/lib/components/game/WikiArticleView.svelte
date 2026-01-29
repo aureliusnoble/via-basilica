@@ -80,7 +80,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	bind:this={containerRef}
-	class="wiki-content px-4 py-4 overflow-y-auto max-w-lg lg:max-w-3xl mx-auto"
+	class="wiki-content px-4 py-4 overflow-y-auto max-w-lg lg:max-w-4xl xl:max-w-5xl mx-auto"
 	onclick={handleClick}
 	onkeydown={handleKeyDown}
 >

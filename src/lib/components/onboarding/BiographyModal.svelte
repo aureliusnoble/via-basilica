@@ -59,7 +59,7 @@
 	];
 </script>
 
-<Modal bind:open={ui.showBiographyModal} onclose={close} title="" size="lg">
+<Modal open={ui.showBiographyModal} onclose={close} title="" size="lg">
 	<div class="bio-content space-y-8 -mt-2">
 		<!-- Hero Section -->
 		<section class="text-center py-4">
