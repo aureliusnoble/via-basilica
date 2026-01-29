@@ -200,16 +200,21 @@ async function checkCategoryCache(
 }
 
 // Store category classifications in cache
+// Only cache non-null categories to avoid permanently caching redirect/missing articles
 async function updateCategoryCache(
 	supabase: ReturnType<typeof createClient>,
 	categories: Record<string, string | null>
 ): Promise<void> {
 	try {
-		const rows = Object.entries(categories).map(([title, category]) => ({
-			title,
-			category,
-			checked_at: new Date().toISOString()
-		}));
+		// Only cache articles that have a valid category
+		// This allows redirect targets to be re-resolved on next request
+		const rows = Object.entries(categories)
+			.filter(([_, category]) => category !== null)
+			.map(([title, category]) => ({
+				title,
+				category,
+				checked_at: new Date().toISOString()
+			}));
 
 		if (rows.length === 0) return;
 
@@ -217,6 +222,61 @@ async function updateCategoryCache(
 		await supabase.from('article_categories').upsert(rows, { onConflict: 'title' });
 	} catch (error) {
 		console.error('Category cache update error:', error);
+	}
+}
+
+// Resolve Wikipedia redirects to get canonical titles
+async function resolveWikipediaRedirects(
+	titles: string[]
+): Promise<Record<string, string>> {
+	if (titles.length === 0) return {};
+
+	const params = new URLSearchParams({
+		action: 'query',
+		titles: titles.join('|'),
+		redirects: '1',
+		format: 'json',
+		origin: '*'
+	});
+
+	try {
+		const response = await fetch(`${WIKIPEDIA_API}?${params}`);
+		const data = await response.json();
+
+		const redirectMap: Record<string, string> = {};
+
+		// Map original titles to themselves first
+		for (const title of titles) {
+			redirectMap[title] = title;
+		}
+
+		// Apply redirects
+		const redirects = data.query?.redirects || [];
+		for (const redirect of redirects) {
+			redirectMap[redirect.from] = redirect.to;
+			// Also handle underscore variants
+			redirectMap[redirect.from.replace(/ /g, '_')] = redirect.to;
+		}
+
+		// Apply normalizations (e.g., first letter capitalization)
+		const normalizations = data.query?.normalized || [];
+		for (const norm of normalizations) {
+			if (redirectMap[norm.to]) {
+				redirectMap[norm.from] = redirectMap[norm.to];
+			} else {
+				redirectMap[norm.from] = norm.to;
+			}
+		}
+
+		return redirectMap;
+	} catch (error) {
+		console.error('Error resolving Wikipedia redirects:', error);
+		// Return identity mapping on error
+		const result: Record<string, string> = {};
+		for (const title of titles) {
+			result[title] = title;
+		}
+		return result;
 	}
 }
 
@@ -689,18 +749,42 @@ serve(async (req) => {
 			uncachedP31Titles = cacheResult.uncached;
 		}
 
-		// Step 3: Fetch P31 values from Wikidata for uncached titles
+		// Step 3: Resolve Wikipedia redirects for uncached titles
+		// This ensures "Byzantine" resolves to "Byzantine Empire" etc.
+		let redirectMap: Record<string, string> = {};
+		if (uncachedP31Titles.length > 0) {
+			for (let i = 0; i < uncachedP31Titles.length; i += WIKIDATA_BATCH_SIZE) {
+				const batch = uncachedP31Titles.slice(i, i + WIKIDATA_BATCH_SIZE);
+				const batchRedirects = await resolveWikipediaRedirects(batch);
+				Object.assign(redirectMap, batchRedirects);
+			}
+		}
+
+		// Step 4: Fetch P31 values from Wikidata for uncached titles (using resolved titles)
 		if (uncachedP31Titles.length > 0) {
 			const fetchedP31: Record<string, string[]> = {};
 
+			// Get unique resolved titles
+			const resolvedTitles = [...new Set(Object.values(redirectMap))];
+
 			// Process in batches of 50 (Wikidata API limit)
-			for (let i = 0; i < uncachedP31Titles.length; i += WIKIDATA_BATCH_SIZE) {
-				const batch = uncachedP31Titles.slice(i, i + WIKIDATA_BATCH_SIZE);
+			for (let i = 0; i < resolvedTitles.length; i += WIKIDATA_BATCH_SIZE) {
+				const batch = resolvedTitles.slice(i, i + WIKIDATA_BATCH_SIZE);
 				const batchResults = await fetchP31FromWikidata(batch);
 				Object.assign(fetchedP31, batchResults);
 			}
 
-			// Merge fetched results
+			// Map results back to original titles
+			for (const originalTitle of uncachedP31Titles) {
+				const resolvedTitle = redirectMap[originalTitle] || originalTitle;
+				if (fetchedP31[resolvedTitle]) {
+					allP31Values[originalTitle] = fetchedP31[resolvedTitle];
+				} else if (fetchedP31[resolvedTitle.replace(/ /g, '_')]) {
+					allP31Values[originalTitle] = fetchedP31[resolvedTitle.replace(/ /g, '_')];
+				}
+			}
+
+			// Also store under resolved titles for cache
 			Object.assign(allP31Values, fetchedP31);
 
 			// Update P31 cache in background
