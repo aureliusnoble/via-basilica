@@ -1,17 +1,22 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { browser } from '$app/environment';
+import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
-const supabaseUrl = import.meta.env.PUBLIC_SUPABASE_URL as string;
-const supabaseAnonKey = import.meta.env.PUBLIC_SUPABASE_ANON_KEY as string;
+let supabaseInstance: SupabaseClient | null = null;
 
-export const supabase = browser
-	? createClient(supabaseUrl, supabaseAnonKey, {
-			auth: {
-				persistSession: true,
-				autoRefreshToken: true
-			}
-		})
-	: null!;
+function createSupabaseClient(): SupabaseClient {
+	if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
+		throw new Error('Supabase environment variables are not configured');
+	}
+	return createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		auth: {
+			persistSession: true,
+			autoRefreshToken: true
+		}
+	});
+}
+
+export const supabase = browser ? createSupabaseClient() : null!;
 
 export function getSupabase() {
 	if (!browser) {
