@@ -5,19 +5,27 @@ import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/publi
 let supabaseInstance: SupabaseClient | null = null;
 
 function createSupabaseClient(): SupabaseClient | null {
+	console.log('[Supabase] Creating client...');
+	console.log('[Supabase] URL configured:', !!PUBLIC_SUPABASE_URL);
+	console.log('[Supabase] Key configured:', !!PUBLIC_SUPABASE_ANON_KEY);
+
 	if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
-		console.warn('Supabase environment variables are not configured');
+		console.warn('[Supabase] Environment variables are not configured');
+		console.warn('[Supabase] PUBLIC_SUPABASE_URL:', PUBLIC_SUPABASE_URL || '(empty)');
+		console.warn('[Supabase] PUBLIC_SUPABASE_ANON_KEY:', PUBLIC_SUPABASE_ANON_KEY ? '(set but hidden)' : '(empty)');
 		return null;
 	}
 	try {
-		return createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		const client = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
 			auth: {
 				persistSession: true,
 				autoRefreshToken: true
 			}
 		});
+		console.log('[Supabase] Client created successfully');
+		return client;
 	} catch (error) {
-		console.error('Failed to create Supabase client:', error);
+		console.error('[Supabase] Failed to create client:', error);
 		return null;
 	}
 }
@@ -29,7 +37,15 @@ export function getSupabase(): SupabaseClient {
 		throw new Error('Supabase client is only available in the browser');
 	}
 	if (!supabase) {
-		throw new Error('Supabase client is not configured');
+		throw new Error('Supabase client is not configured. Check that PUBLIC_SUPABASE_URL and PUBLIC_SUPABASE_ANON_KEY are set.');
+	}
+	return supabase;
+}
+
+// Safe version that returns null instead of throwing
+export function getSupabaseSafe(): SupabaseClient | null {
+	if (!browser) {
+		return null;
 	}
 	return supabase;
 }

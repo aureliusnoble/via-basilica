@@ -33,18 +33,23 @@
 	}
 
 	onMount(async () => {
+		console.log('[HomePage] Component mounted');
 		try {
 			// Load challenge (may be cached for instant load)
+			console.log('[HomePage] Loading today\'s challenge...');
 			challenge = await getTodaysChallenge();
+			console.log('[HomePage] Challenge loaded:', challenge ? challenge.id : 'null');
 
 			// Load result in parallel if user is already authenticated
 			if (auth.user && challenge) {
+				console.log('[HomePage] User authenticated, loading result');
 				loadResult(auth.user.id);
 			}
 		} catch (error) {
-			console.error('Error loading home data:', error);
+			console.error('[HomePage] Error loading home data:', error);
 		} finally {
 			challengeLoading = false;
+			console.log('[HomePage] Loading complete');
 		}
 	});
 

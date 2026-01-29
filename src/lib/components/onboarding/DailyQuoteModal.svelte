@@ -14,6 +14,7 @@
 	const quote = $derived(getQuoteForChallenge(challengeNumber));
 
 	function close() {
+		console.log('[DailyQuoteModal] Close button clicked');
 		setShowDailyQuoteModal(false);
 	}
 </script>

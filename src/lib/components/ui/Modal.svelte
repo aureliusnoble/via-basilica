@@ -20,10 +20,19 @@
 		children
 	}: Props = $props();
 
+	// Debug: log when modal state changes
+	$effect(() => {
+		console.log('[Modal] State changed - open:', open, 'title:', title || '(no title)');
+	});
+
 	function handleClose() {
+		console.log('[Modal] handleClose called, closeable:', closeable);
 		if (closeable) {
 			open = false;
 			onclose?.();
+			console.log('[Modal] Modal closed');
+		} else {
+			console.log('[Modal] Modal not closeable, ignoring');
 		}
 	}
 

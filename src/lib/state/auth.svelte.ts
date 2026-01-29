@@ -36,28 +36,55 @@ export function getAuthState() {
 export async function initAuth() {
 	if (!browser || initialized) return;
 
-	const supabase = getSupabase();
+	console.log('[Auth] Starting auth initialization...');
 
-	// Get initial session
-	const { data } = await supabase.auth.getSession();
-	session = data.session;
-	user = data.session?.user || null;
-
-	if (user) {
-		await fetchProfile(user.id);
+	let supabase;
+	try {
+		supabase = getSupabase();
+		console.log('[Auth] Supabase client obtained successfully');
+	} catch (error) {
+		console.warn('[Auth] Supabase not configured, running in anonymous mode:', error);
+		loading = false;
+		initialized = true;
+		return;
 	}
 
-	// Listen for auth changes
-	supabase.auth.onAuthStateChange(async (event, newSession) => {
-		session = newSession;
-		user = newSession?.user || null;
+	try {
+		// Get initial session
+		console.log('[Auth] Getting initial session...');
+		const { data, error: sessionError } = await supabase.auth.getSession();
+
+		if (sessionError) {
+			console.error('[Auth] Error getting session:', sessionError);
+		} else {
+			console.log('[Auth] Session retrieved:', data.session ? 'User logged in' : 'No session');
+		}
+
+		session = data.session;
+		user = data.session?.user || null;
 
 		if (user) {
+			console.log('[Auth] Fetching profile for user:', user.id);
 			await fetchProfile(user.id);
-		} else {
-			profile = null;
 		}
-	});
+
+		// Listen for auth changes
+		supabase.auth.onAuthStateChange(async (event, newSession) => {
+			console.log('[Auth] Auth state changed:', event);
+			session = newSession;
+			user = newSession?.user || null;
+
+			if (user) {
+				await fetchProfile(user.id);
+			} else {
+				profile = null;
+			}
+		});
+
+		console.log('[Auth] Auth initialization complete');
+	} catch (error) {
+		console.error('[Auth] Error during auth initialization:', error);
+	}
 
 	loading = false;
 	initialized = true;

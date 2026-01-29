@@ -25,8 +25,11 @@ function createUIState() {
 		const lastQuoteDate = localStorage.getItem(QUOTE_DATE_KEY);
 		const today = new Date().toDateString();
 
+		console.log('[UI] Checking daily quote. Last shown:', lastQuoteDate, 'Today:', today);
+
 		if (lastQuoteDate !== today) {
 			showDailyQuoteModal = true;
+			console.log('[UI] Showing daily quote modal');
 		}
 	}
 
@@ -49,30 +52,47 @@ function createUIState() {
 
 		init() {
 			if (!browser || initialized) return;
-			initialized = true;
 
-			// Check for mobile
-			isMobile = window.innerWidth < 768;
-			window.addEventListener('resize', () => {
+			console.log('[UI] Starting UI initialization...');
+
+			try {
+				initialized = true;
+
+				// Check for mobile
 				isMobile = window.innerWidth < 768;
-			});
+				console.log('[UI] Mobile check:', isMobile);
+				window.addEventListener('resize', () => {
+					isMobile = window.innerWidth < 768;
+				});
 
-			// Load theme
-			const savedTheme = localStorage.getItem(THEME_KEY);
-			if (savedTheme) {
-				darkMode = savedTheme === 'dark';
-			} else {
-				darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-			}
-			applyTheme();
+				// Load theme
+				const savedTheme = localStorage.getItem(THEME_KEY);
+				if (savedTheme) {
+					darkMode = savedTheme === 'dark';
+				} else {
+					darkMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				}
+				console.log('[UI] Theme:', darkMode ? 'dark' : 'light');
+				applyTheme();
 
-			// Check for welcome modal
-			const welcomed = localStorage.getItem(WELCOME_KEY);
-			if (!welcomed) {
-				showWelcomeModal = true;
-			} else {
-				// Check for daily quote
-				checkDailyQuote();
+				// Check for welcome modal
+				const welcomed = localStorage.getItem(WELCOME_KEY);
+				console.log('[UI] User welcomed before:', !!welcomed);
+				if (!welcomed) {
+					showWelcomeModal = true;
+					console.log('[UI] Showing welcome modal');
+				} else {
+					// Check for daily quote
+					checkDailyQuote();
+				}
+
+				console.log('[UI] UI initialization complete. Modal states:', {
+					showWelcomeModal,
+					showDailyQuoteModal,
+					showBiographyModal
+				});
+			} catch (error) {
+				console.error('[UI] Error during UI initialization:', error);
 			}
 		},
 

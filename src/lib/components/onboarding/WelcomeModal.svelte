@@ -10,9 +10,12 @@
 	const quote = getRandomQuote();
 
 	function nextPage() {
+		console.log('[WelcomeModal] Next button clicked, currentPage:', currentPage);
 		if (currentPage < 1) {
 			currentPage++;
+			console.log('[WelcomeModal] Advanced to page:', currentPage);
 		} else {
+			console.log('[WelcomeModal] Closing modal');
 			setShowWelcomeModal(false);
 		}
 	}

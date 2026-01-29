@@ -7,14 +7,22 @@ const DAILY_CHALLENGE_CACHE_KEY = 'daily_challenge';
 
 export async function getTodaysChallenge(): Promise<DailyChallenge | null> {
 	const today = format(new Date(), 'yyyy-MM-dd');
+	console.log('[Challenges] Getting today\'s challenge for:', today);
 
 	// Check cache first
 	const cached = getCached<DailyChallenge>(DAILY_CHALLENGE_CACHE_KEY);
 	if (cached && cached.challenge_date === today) {
+		console.log('[Challenges] Returning cached challenge');
 		return cached;
 	}
 
-	const supabase = getSupabase();
+	let supabase;
+	try {
+		supabase = getSupabase();
+	} catch (error) {
+		console.warn('[Challenges] Supabase not available:', error);
+		return null;
+	}
 
 	const { data, error } = await supabase
 		.from('daily_challenges')
@@ -23,9 +31,11 @@ export async function getTodaysChallenge(): Promise<DailyChallenge | null> {
 		.single();
 
 	if (error) {
-		console.error('Error fetching daily challenge:', error);
+		console.error('[Challenges] Error fetching daily challenge:', error);
 		return null;
 	}
+
+	console.log('[Challenges] Challenge fetched successfully:', data?.id);
 
 	// Cache until midnight
 	if (data) {

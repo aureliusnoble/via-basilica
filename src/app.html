@@ -11,12 +11,22 @@
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/icon-192.svg" />
 		<title>Via Basilica</title>
 		<script>
+			// Early error handler to catch any uncaught errors
+			window.addEventListener('error', function(e) {
+				console.error('[GLOBAL ERROR]', e.message, 'at', e.filename + ':' + e.lineno);
+			});
+			window.addEventListener('unhandledrejection', function(e) {
+				console.error('[UNHANDLED PROMISE REJECTION]', e.reason);
+			});
+			console.log('[App] Early script loaded');
+
 			(function() {
 				var theme = localStorage.getItem('via_basilica_theme');
 				var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
 				var isDark = theme ? theme === 'dark' : prefersDark;
 				document.documentElement.classList.toggle('dark', isDark);
 				document.documentElement.classList.toggle('light', !isDark);
+				console.log('[App] Theme initialized:', isDark ? 'dark' : 'light');
 			})();
 		</script>
 		%sveltekit.head%
