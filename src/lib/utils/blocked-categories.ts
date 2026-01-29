@@ -12,6 +12,14 @@ export const BLOCKED_CATEGORY_EMOJIS: Record<string, string> = {
 	Language: '📗',
 	Government: '⬛',
 	Law: '⬜',
+	// Additional categories from classification (not blockable but appear in paths)
+	Science: '🧬',
+	Arts: '🎨',
+	Sports: '🏅',
+	Architecture: '🏛️',
+	Transportation: '🚂',
+	Military: '⚔️',
+	Economics: '💰',
 	Basil: '☦️',
 	Other: '⬜'
 };
@@ -30,7 +38,15 @@ export const BLOCKED_CATEGORY_BG_COLORS: Record<string, string> = {
 	Humanities: 'category-bubble bg-orange-600/20 border-orange-600/40',
 	Language: 'category-bubble bg-emerald-500/20 border-emerald-500/40',
 	Government: 'category-bubble bg-slate-500/20 border-slate-500/40',
-	Law: 'category-bubble bg-gray-500/20 border-gray-500/40'
+	Law: 'category-bubble bg-gray-500/20 border-gray-500/40',
+	// Additional categories from classification
+	Science: 'category-bubble bg-cyan-500/20 border-cyan-500/40',
+	Arts: 'category-bubble bg-pink-500/20 border-pink-500/40',
+	Sports: 'category-bubble bg-lime-500/20 border-lime-500/40',
+	Architecture: 'category-bubble bg-stone-500/20 border-stone-500/40',
+	Transportation: 'category-bubble bg-indigo-500/20 border-indigo-500/40',
+	Military: 'category-bubble bg-zinc-600/20 border-zinc-600/40',
+	Economics: 'category-bubble bg-teal-500/20 border-teal-500/40'
 };
 
 // Inline CSS colors for blocked links (used in HTML attributes)
@@ -64,6 +80,14 @@ export const BLOCKED_CATEGORY_NAMES: Record<string, string> = {
 	Language: 'Language',
 	Government: 'Government',
 	Law: 'Law',
+	// Additional categories from classification
+	Science: 'Science',
+	Arts: 'Arts',
+	Sports: 'Sports',
+	Architecture: 'Architecture',
+	Transportation: 'Transportation',
+	Military: 'Military',
+	Economics: 'Economics',
 	Basil: 'Basil the Great',
 	Other: 'Other'
 };
