@@ -90,14 +90,17 @@ export async function generateShareText(
 	}
 
 	// Build share text in order:
-	// 1. Title and date
-	// 2. Start -> Target
-	// 3. Blocked categories (if any)
-	// 4. Category chain
-	// 5. Hops and time
-	// 6. Legend
-	// 7. URL
-	const lines = [title, dateStr, '', `${start} → ${targetArticle}`];
+	// 1. Delimiter
+	// 2. Title and date
+	// 3. Start -> Target
+	// 4. Blocked categories (if any)
+	// 5. Category chain
+	// 6. Hops and time
+	// 7. Legend
+	// 8. URL
+	// 9. Delimiter
+	const delimiter = '════════════════════';
+	const lines = [delimiter, title, dateStr, '', `${start} → ${targetArticle}`];
 
 	if (blockedLine) {
 		lines.push(blockedLine);
@@ -114,6 +117,7 @@ export async function generateShareText(
 
 	lines.push('');
 	lines.push(shareUrl);
+	lines.push(delimiter);
 
 	return lines.join('\n');
 }
