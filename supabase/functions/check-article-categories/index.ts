@@ -78,6 +78,67 @@ const MAX_P279_DEPTH = 3;
 // Cache for P279 lookups (within a single request)
 const p279Cache: Record<string, string[]> = {};
 
+// Check article_categories cache for pre-classified articles
+async function checkCategoryCache(
+	supabase: ReturnType<typeof createClient>,
+	titles: string[]
+): Promise<{ cached: Record<string, string | null>; uncached: string[] }> {
+	const cached: Record<string, string | null> = {};
+	const uncached: string[] = [];
+
+	try {
+		const { data, error } = await supabase
+			.from('article_categories')
+			.select('title, category')
+			.in('title', titles);
+
+		if (error) {
+			console.error('Category cache read error:', error);
+			return { cached: {}, uncached: titles };
+		}
+
+		// Build a map of cached categories
+		const cachedTitles = new Set<string>();
+		for (const row of data || []) {
+			cached[row.title] = row.category;
+			cachedTitles.add(row.title);
+		}
+
+		// Find uncached titles
+		for (const title of titles) {
+			if (!cachedTitles.has(title) && !cachedTitles.has(title.replace(/ /g, '_'))) {
+				uncached.push(title);
+			}
+		}
+
+		return { cached, uncached };
+	} catch (error) {
+		console.error('Category cache error:', error);
+		return { cached: {}, uncached: titles };
+	}
+}
+
+// Store category classifications in cache
+async function updateCategoryCache(
+	supabase: ReturnType<typeof createClient>,
+	categories: Record<string, string | null>
+): Promise<void> {
+	try {
+		const rows = Object.entries(categories).map(([title, category]) => ({
+			title,
+			category,
+			checked_at: new Date().toISOString()
+		}));
+
+		if (rows.length === 0) return;
+
+		// Upsert to handle existing entries
+		await supabase.from('article_categories').upsert(rows, { onConflict: 'title' });
+	} catch (error) {
+		console.error('Category cache update error:', error);
+	}
+}
+
 // Fetch Wikipedia categories for articles (fallback when no P31)
 async function fetchWikipediaCategories(
 	titles: string[]
@@ -443,6 +504,36 @@ async function classifyArticle(
 	return null;
 }
 
+// Get the category for an article (regardless of blocked status) - for caching
+function getArticleCategory(p31Values: string[]): string | null {
+	// Check all P31 values against our mapping
+	for (const classId of p31Values) {
+		const category = (CLASS_MAPPING as Record<string, string>)[classId];
+		if (category) {
+			return category;
+		}
+	}
+	return null;
+}
+
+// Classify using Wikipedia categories and return the category (for caching)
+function getWikipediaCategoryClassification(categories: string[]): string | null {
+	const categoriesLower = categories.map(c => c.toLowerCase());
+
+	// Check all possible categories, not just blocked ones
+	for (const [categoryName, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+		for (const category of categoriesLower) {
+			for (const keyword of keywords) {
+				if (category.includes(keyword)) {
+					return categoryName;
+				}
+			}
+		}
+	}
+
+	return null;
+}
+
 serve(async (req) => {
 	// Handle CORS preflight
 	if (req.method === 'OPTIONS') {
@@ -469,23 +560,50 @@ serve(async (req) => {
 		}
 
 		const supabase = getSupabaseClient();
-		let allP31Values: Record<string, string[]> = {};
+		const blockedLinks: Record<string, string | null> = {};
+		const newCategoryClassifications: Record<string, string | null> = {};
 
-		// Step 1: Check cache for existing P31 values
-		let uncachedTitles = titles;
+		// Step 1: Check article_categories cache first (fastest path)
+		let titlesToClassify = titles;
 		if (supabase) {
-			const cacheResult = await checkCache(supabase, titles);
-			allP31Values = { ...cacheResult.cached };
-			uncachedTitles = cacheResult.uncached;
+			const categoryCache = await checkCategoryCache(supabase, titles);
+
+			// For cached articles, just check if their category is blocked
+			for (const [title, category] of Object.entries(categoryCache.cached)) {
+				if (category && blockedCategories.includes(category)) {
+					blockedLinks[title] = category;
+				} else {
+					blockedLinks[title] = null;
+				}
+			}
+
+			titlesToClassify = categoryCache.uncached;
 		}
 
-		// Step 2: Fetch P31 values from Wikidata for uncached titles
-		if (uncachedTitles.length > 0) {
+		// If all titles were cached, return immediately
+		if (titlesToClassify.length === 0) {
+			return new Response(JSON.stringify({ blockedLinks }), {
+				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+			});
+		}
+
+		// Step 2: For uncached titles, check P31 cache
+		let allP31Values: Record<string, string[]> = {};
+		let uncachedP31Titles = titlesToClassify;
+
+		if (supabase) {
+			const cacheResult = await checkCache(supabase, titlesToClassify);
+			allP31Values = { ...cacheResult.cached };
+			uncachedP31Titles = cacheResult.uncached;
+		}
+
+		// Step 3: Fetch P31 values from Wikidata for uncached titles
+		if (uncachedP31Titles.length > 0) {
 			const fetchedP31: Record<string, string[]> = {};
 
 			// Process in batches of 50 (Wikidata API limit)
-			for (let i = 0; i < uncachedTitles.length; i += WIKIDATA_BATCH_SIZE) {
-				const batch = uncachedTitles.slice(i, i + WIKIDATA_BATCH_SIZE);
+			for (let i = 0; i < uncachedP31Titles.length; i += WIKIDATA_BATCH_SIZE) {
+				const batch = uncachedP31Titles.slice(i, i + WIKIDATA_BATCH_SIZE);
 				const batchResults = await fetchP31FromWikidata(batch);
 				Object.assign(fetchedP31, batchResults);
 			}
@@ -493,18 +611,16 @@ serve(async (req) => {
 			// Merge fetched results
 			Object.assign(allP31Values, fetchedP31);
 
-			// Step 3: Update cache in background (don't await)
+			// Update P31 cache in background
 			if (supabase && Object.keys(fetchedP31).length > 0) {
 				updateCache(supabase, fetchedP31);
 			}
 		}
 
 		// Step 4: Classify articles and identify blocked ones
-		// Use P279 chain lookup for unknown classes
-		const blockedLinks: Record<string, string | null> = {};
 		const titlesNeedingWikipediaFallback: string[] = [];
 
-		for (const title of titles) {
+		for (const title of titlesToClassify) {
 			const p31Values = allP31Values[title] || allP31Values[title.replace(/ /g, '_')] || [];
 
 			if (p31Values.length === 0) {
@@ -512,14 +628,21 @@ serve(async (req) => {
 				titlesNeedingWikipediaFallback.push(title);
 				blockedLinks[title] = null; // Placeholder
 			} else {
-				const blockedCategory = await classifyArticle(p31Values, blockedCategories);
-				blockedLinks[title] = blockedCategory;
+				// Get the category for caching
+				const category = getArticleCategory(p31Values);
+				newCategoryClassifications[title] = category;
+
+				// Check if blocked
+				if (category && blockedCategories.includes(category)) {
+					blockedLinks[title] = category;
+				} else {
+					blockedLinks[title] = null;
+				}
 			}
 		}
 
 		// Step 5: Wikipedia category fallback for articles without P31
 		if (titlesNeedingWikipediaFallback.length > 0) {
-			// Fetch Wikipedia categories in batches
 			for (let i = 0; i < titlesNeedingWikipediaFallback.length; i += WIKIDATA_BATCH_SIZE) {
 				const batch = titlesNeedingWikipediaFallback.slice(i, i + WIKIDATA_BATCH_SIZE);
 				const wikiCategories = await fetchWikipediaCategories(batch);
@@ -527,11 +650,27 @@ serve(async (req) => {
 				for (const title of batch) {
 					const categories = wikiCategories[title] || wikiCategories[title.replace(/ /g, '_')] || [];
 					if (categories.length > 0) {
-						const blockedCategory = classifyWithWikipediaCategories(categories, blockedCategories);
-						blockedLinks[title] = blockedCategory;
+						// Get the category for caching
+						const category = getWikipediaCategoryClassification(categories);
+						newCategoryClassifications[title] = category;
+
+						// Check if blocked
+						if (category && blockedCategories.includes(category)) {
+							blockedLinks[title] = category;
+						} else {
+							blockedLinks[title] = null;
+						}
+					} else {
+						// No categories found - cache as null
+						newCategoryClassifications[title] = null;
 					}
 				}
 			}
+		}
+
+		// Step 6: Cache the new category classifications (fire and forget)
+		if (supabase && Object.keys(newCategoryClassifications).length > 0) {
+			updateCategoryCache(supabase, newCategoryClassifications);
 		}
 
 		return new Response(JSON.stringify({ blockedLinks }), {
