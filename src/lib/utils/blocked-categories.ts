@@ -11,7 +11,9 @@ export const BLOCKED_CATEGORY_EMOJIS: Record<string, string> = {
 	Humanities: '📙',
 	Language: '📗',
 	Government: '⬛',
-	Law: '⬜'
+	Law: '⬜',
+	Basil: '☦️',
+	Other: '⬜'
 };
 
 // CSS background colors for category bubbles
@@ -61,7 +63,9 @@ export const BLOCKED_CATEGORY_NAMES: Record<string, string> = {
 	Humanities: 'Humanities',
 	Language: 'Language',
 	Government: 'Government',
-	Law: 'Law'
+	Law: 'Law',
+	Basil: 'Basil the Great',
+	Other: 'Other'
 };
 
 // All blockable categories

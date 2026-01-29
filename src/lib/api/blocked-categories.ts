@@ -176,3 +176,31 @@ export async function getArticleCategory(title: string): Promise<string | null> 
 		return null;
 	}
 }
+
+// Get categories for multiple articles at once (batch)
+export async function getArticleCategories(titles: string[]): Promise<CategoriesMap> {
+	if (!browser || titles.length === 0) return {};
+
+	const supabase = getSupabaseSafe();
+	if (!supabase) return {};
+
+	try {
+		// Use a dummy blocked category to trigger classification
+		const { data, error } = await supabase.functions.invoke('check-article-categories', {
+			body: {
+				titles,
+				blockedCategories: ['__dummy__'] // Won't match anything, but will classify
+			}
+		});
+
+		if (error) {
+			console.error('Error getting article categories:', error);
+			return {};
+		}
+
+		return data?.categories || {};
+	} catch (err) {
+		console.error('Error calling check-article-categories:', err);
+		return {};
+	}
+}

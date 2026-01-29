@@ -1,175 +1,21 @@
 import type { PathStep } from '$lib/types/database.js';
 import { formatDate, formatDuration } from './date-helpers.js';
-import { formatBlockedCategoriesForShare } from './blocked-categories.js';
+import {
+	formatBlockedCategoriesForShare,
+	BLOCKED_CATEGORY_EMOJIS,
+	BLOCKED_CATEGORY_NAMES
+} from './blocked-categories.js';
+import { getArticleCategories } from '$lib/api/blocked-categories.js';
 
-// Expanded category types to match blocked categories
-type Category =
-	| 'Religion'
-	| 'History'
-	| 'People'
-	| 'Philosophy'
-	| 'Culture'
-	| 'Education'
-	| 'Society'
-	| 'Geography'
-	| 'Humanities'
-	| 'Language'
-	| 'Government'
-	| 'Law'
-	| '*';
+// Target article name (normalized)
+const TARGET_ARTICLE = 'Basil the Great';
 
-// Colored squares for each category
-const CATEGORY_COLORS: Record<Category, string> = {
-	Religion: '🟣',
-	History: '🟫',
-	People: '🔴',
-	Philosophy: '🟡',
-	Culture: '🟠',
-	Education: '📘',
-	Society: '🔵',
-	Geography: '🟢',
-	Humanities: '📙',
-	Language: '📗',
-	Government: '⬛',
-	Law: '⬜',
-	'*': '⬜' // Other - white
-};
-
-// Category names for legend
-const CATEGORY_NAMES: Record<Category, string> = {
-	Religion: 'Religion',
-	History: 'History',
-	People: 'People',
-	Philosophy: 'Philosophy',
-	Culture: 'Culture',
-	Education: 'Education',
-	Society: 'Society',
-	Geography: 'Geography',
-	Humanities: 'Humanities',
-	Language: 'Language',
-	Government: 'Government',
-	Law: 'Law',
-	'*': 'Other'
-};
-
-const CATEGORY_KEYWORDS: Record<Category, string[]> = {
-	Religion: [
-		'church',
-		'saint',
-		'bishop',
-		'christian',
-		'orthodox',
-		'catholic',
-		'theology',
-		'priest',
-		'muslim',
-		'buddhist',
-		'jewish',
-		'religion',
-		'religious',
-		'monastery',
-		'pope',
-		'god',
-		'jesus',
-		'bible'
-	],
-	History: [
-		'empire',
-		'ancient',
-		'war',
-		'century',
-		'dynasty',
-		'medieval',
-		'kingdom',
-		'roman',
-		'byzantine',
-		'battle',
-		'civilization',
-		'history',
-		'historical'
-	],
-	People: [
-		'born',
-		'died',
-		'people',
-		'person',
-		'living',
-		'deaths',
-		'births',
-		'politician',
-		'writer',
-		'artist',
-		'scientist'
-	],
-	Philosophy: ['philosophy', 'philosopher', 'epistemology', 'metaphysics', 'ethics', 'logic'],
-	Culture: [
-		'culture',
-		'cultural',
-		'tradition',
-		'customs',
-		'festival',
-		'ceremony',
-		'folklore',
-		'mythology'
-	],
-	Education: [
-		'university',
-		'school',
-		'college',
-		'education',
-		'academic',
-		'student',
-		'professor',
-		'alumni'
-	],
-	Society: ['society', 'social', 'community', 'organization', 'movement', 'group'],
-	Geography: [
-		'city',
-		'country',
-		'river',
-		'region',
-		'mountain',
-		'island',
-		'capital',
-		'province',
-		'ocean',
-		'sea',
-		'lake',
-		'geography'
-	],
-	Humanities: ['humanities', 'arts', 'literature', 'linguistics'],
-	Language: ['language', 'linguistic', 'grammar', 'vocabulary', 'dialect', 'writing'],
-	Government: [
-		'government',
-		'politics',
-		'political',
-		'ministry',
-		'parliament',
-		'congress',
-		'democracy',
-		'election'
-	],
-	Law: ['law', 'legal', 'court', 'judge', 'attorney', 'legislation', 'constitution', 'crime'],
-	'*': [] // fallback, no keywords
-};
-
-export function detectCategory(articleTitle: string): Category {
-	const titleLower = articleTitle.toLowerCase().replace(/_/g, ' ');
-
-	// Check each category's keywords
-	for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-		if (category === '*') continue;
-		for (const keyword of keywords) {
-			if (titleLower.includes(keyword)) {
-				return category as Category;
-			}
-		}
-	}
-
-	return '*'; // fallback
+function isTargetArticle(title: string): boolean {
+	const normalized = title.replace(/_/g, ' ').toLowerCase();
+	return normalized === 'basil the great' || normalized === 'basil of caesarea';
 }
 
-export function generateShareText(
+export async function generateShareText(
 	challengeNumber: number | null,
 	hops: number,
 	durationSeconds: number,
@@ -178,40 +24,49 @@ export function generateShareText(
 	challengeDate: Date | string,
 	mode: 'daily' | 'random' | 'archive' = 'daily',
 	blockedCategories: string[] = []
-): string {
+): Promise<string> {
 	const dateStr = formatDate(challengeDate);
 	const timeStr = formatDuration(durationSeconds);
 
 	// Clean article names
 	const cleanStart = startArticle.replace(/_/g, ' ');
-	const targetArticle = 'Basil the Great'; // Always the same
+	const targetArticle = TARGET_ARTICLE;
 
-	// Truncate long names (max 25 chars)
+	// Truncate long start name (max 25 chars)
 	const maxLen = 25;
 	const start =
 		cleanStart.length > maxLen ? cleanStart.slice(0, maxLen - 3) + '...' : cleanStart;
 
-	// Generate category chain from path (excluding start, it's shown explicitly)
-	const categories = path.slice(1).map((step) => detectCategory(step.article_title));
-	const categoryColors = categories.map((cat) => CATEGORY_COLORS[cat]);
+	// Get the journey steps (excluding start article, it's shown explicitly)
+	const journeySteps = path.slice(1);
 
-	// Format category chain as colored boxes (truncate if > 8 steps)
-	let categoryChain: string;
-	if (categoryColors.length <= 8) {
-		categoryChain = categoryColors.join('');
-	} else {
-		// Show first 4, ellipsis, last 3
-		const first = categoryColors.slice(0, 4).join('');
-		const last = categoryColors.slice(-3).join('');
-		categoryChain = `${first}...${last}`;
-	}
+	// Fetch categories for all journey steps using server-side classification
+	const titles = journeySteps.map((step) => step.article_title);
+	const categoriesMap = await getArticleCategories(titles);
 
-	// Generate legend for unique categories that appeared in the journey (each on new line)
-	const uniqueCategories = [...new Set(categories)].filter((cat) => cat !== '*');
-	const legendLines =
-		uniqueCategories.length > 0
-			? uniqueCategories.map((cat) => `${CATEGORY_COLORS[cat]} ${CATEGORY_NAMES[cat]}`)
-			: [];
+	// Build category list, with special handling for the target (Basil)
+	const categories: string[] = journeySteps.map((step, index) => {
+		// Last step is always Basil
+		if (index === journeySteps.length - 1 && isTargetArticle(step.article_title)) {
+			return 'Basil';
+		}
+		return categoriesMap[step.article_title] || categoriesMap[step.article_title.replace(/ /g, '_')] || 'Other';
+	});
+
+	// Convert categories to emoji squares (show ALL hops, no truncation)
+	const categoryColors = categories.map((cat) => BLOCKED_CATEGORY_EMOJIS[cat] || BLOCKED_CATEGORY_EMOJIS['Other']);
+	const categoryChain = categoryColors.join('');
+
+	// Generate legend for unique categories that appeared in the journey
+	// Always put Basil last in the legend if present
+	const uniqueCategories = [...new Set(categories)];
+	const sortedCategories = uniqueCategories
+		.filter((cat) => cat !== 'Basil')
+		.concat(uniqueCategories.includes('Basil') ? ['Basil'] : []);
+
+	const legendLines = sortedCategories.map(
+		(cat) => `${BLOCKED_CATEGORY_EMOJIS[cat] || '⬜'} ${BLOCKED_CATEGORY_NAMES[cat] || cat}`
+	);
 
 	// Title based on mode
 	const title =
@@ -240,14 +95,9 @@ export function generateShareText(
 	// 3. Blocked categories (if any)
 	// 4. Category chain
 	// 5. Hops and time
-	// 6. Legend (if any)
+	// 6. Legend
 	// 7. URL
-	const lines = [
-		title,
-		dateStr,
-		'',
-		`${start} → ${targetArticle}`
-	];
+	const lines = [title, dateStr, '', `${start} → ${targetArticle}`];
 
 	if (blockedLine) {
 		lines.push(blockedLine);
@@ -256,7 +106,7 @@ export function generateShareText(
 	lines.push(categoryChain);
 	lines.push(`${hops} hops | ${timeStr}`);
 
-	// Add legend (each category on new line)
+	// Add legend
 	if (legendLines.length > 0) {
 		lines.push('');
 		lines.push(...legendLines);
@@ -302,7 +152,7 @@ export async function shareResult(
 	mode: 'daily' | 'random' | 'archive' = 'daily',
 	blockedCategories: string[] = []
 ): Promise<boolean> {
-	const text = generateShareText(
+	const text = await generateShareText(
 		challengeNumber,
 		hops,
 		durationSeconds,
