@@ -4,6 +4,7 @@
 	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
 	import { checkBlockedLinks, getArticleCategory } from '$lib/api/blocked-categories.js';
 	import { BLOCKED_CATEGORY_LINK_COLORS } from '$lib/utils/blocked-categories.js';
+	import { toast } from 'svelte-sonner';
 
 	interface Props {
 		articleTitle: string;
@@ -240,7 +241,17 @@
 			}
 		}
 	}
+
+	// Prevent Ctrl+F/Cmd+F browser find during gameplay
+	function handleGlobalKeyDown(e: KeyboardEvent) {
+		if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+			e.preventDefault();
+			toast.info('Find is disabled — navigate by clicking links!');
+		}
+	}
 </script>
+
+<svelte:window onkeydown={handleGlobalKeyDown} />
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <!-- svelte-ignore a11y_click_events_have_key_events -->
