@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import type { GameState, StoredGameState } from '$lib/types/game.js';
 import type { PathStep, PowerupUsage, GameMode } from '$lib/types/database.js';
-import { TARGET_ARTICLE } from '$lib/api/wikipedia.js';
+import { TARGET_ARTICLE, isTargetArticle } from '$lib/api/wikipedia.js';
 import { format } from 'date-fns';
 
 const STORAGE_KEY = 'via_basilica_game_state';
@@ -101,11 +101,11 @@ export function navigateTo(articleTitle: string) {
 	// Clear free step flag
 	gameState.freeStepActive = false;
 
-	// Check for victory
-	const normalizedTitle = articleTitle.replace(/ /g, '_');
-	if (normalizedTitle === TARGET_ARTICLE || normalizedTitle === 'Basil_the_Great') {
+	// Check for victory - only set isComplete, not isPlaying
+	// isPlaying should remain true so the UI shows the victory modal
+	// instead of the error state. The game ends when user closes the modal.
+	if (isTargetArticle(articleTitle)) {
 		gameState.isComplete = true;
-		gameState.isPlaying = false;
 	}
 
 	saveToStorage();
