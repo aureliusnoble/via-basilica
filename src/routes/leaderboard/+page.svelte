@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Medal, TrendingUp, TrendingDown, Minus, MoreHorizontal } from 'lucide-svelte';
+	import { Medal, TrendingUp, TrendingDown, Minus, MoreHorizontal, ChevronRight, X } from 'lucide-svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
@@ -10,10 +10,12 @@
 		getMonthlyAverageLeaderboard,
 		type LeaderboardType
 	} from '$lib/api/leaderboard.js';
+	import { getTodaysChallenge } from '$lib/api/challenges.js';
+	import { getTodaysResult } from '$lib/api/game-results.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { getLevelTitle } from '$lib/utils/constants.js';
 	import { format } from 'date-fns';
-	import type { LeaderboardEntry } from '$lib/types/database.js';
+	import type { LeaderboardEntry, PathStep } from '$lib/types/database.js';
 	import { getAuthState } from '$lib/state/auth.svelte.js';
 
 	type DisplayEntry = { type: 'entry'; entry: LeaderboardEntry; rank: number } | { type: 'ellipsis' };
@@ -25,9 +27,33 @@
 	let activeTab = $state<LeaderboardType>('daily');
 	let entries = $state<LeaderboardEntry[]>([]);
 	let loading = $state(true);
+	let userCompletedDaily = $state(false);
+	let expandedPathUserId = $state<string | null>(null);
 
 	const auth = getAuthState();
 	const currentMonth = format(new Date(), 'MMMM yyyy');
+
+	// Check if user has completed today's daily
+	async function checkUserCompletion() {
+		if (!auth.user) {
+			userCompletedDaily = false;
+			return;
+		}
+
+		const challenge = await getTodaysChallenge();
+		if (!challenge) {
+			userCompletedDaily = false;
+			return;
+		}
+
+		const result = await getTodaysResult(auth.user.id, challenge.id);
+		userCompletedDaily = !!(result?.completed_at);
+	}
+
+	function togglePathExpansion(userId: string) {
+		if (!userCompletedDaily) return;
+		expandedPathUserId = expandedPathUserId === userId ? null : userId;
+	}
 
 	// Compute display entries: top 3 + ellipsis + context around current user
 	const displayEntries = $derived.by(() => {
@@ -72,8 +98,18 @@
 		return result;
 	});
 
-	onMount(() => {
+	onMount(async () => {
+		await checkUserCompletion();
 		loadLeaderboard('daily');
+	});
+
+	// Re-check completion when auth changes
+	$effect(() => {
+		if (auth.user) {
+			checkUserCompletion();
+		} else {
+			userCompletedDaily = false;
+		}
 	});
 
 	async function loadLeaderboard(type: LeaderboardType) {
@@ -223,14 +259,18 @@
 
 									{#if activeTab === 'daily' && entry.path.length > 0}
 										<!-- Path visualization -->
-										<div class="flex gap-0.5 mt-1 overflow-x-auto">
+										{@const isExpanded = expandedPathUserId === entry.user_id}
+										<button
+											class="flex gap-0.5 mt-1 overflow-x-auto items-center {userCompletedDaily ? 'cursor-pointer hover:opacity-80' : 'cursor-default'}"
+											onclick={() => togglePathExpansion(entry.user_id)}
+											disabled={!userCompletedDaily}
+										>
 											{#each entry.path.slice(0, 10) as step, i}
 												<div
 													class="w-5 h-5 rounded-full flex items-center justify-center text-xs font-medium flex-shrink-0
 														{i === 0 ? 'bg-success/20 text-success' : ''}
 														{i === entry.path.length - 1 ? 'bg-gold text-bg-dark' : ''}
 														{i > 0 && i < entry.path.length - 1 ? 'bg-bg-dark-tertiary' : ''}"
-													title={step.article_title}
 												>
 													{step.article_title.charAt(0)}
 												</div>
@@ -238,7 +278,32 @@
 											{#if entry.path.length > 10}
 												<span class="text-xs text-text-dark-muted self-center">+{entry.path.length - 10}</span>
 											{/if}
-										</div>
+											{#if userCompletedDaily}
+												<ChevronRight size={14} class="text-text-dark-muted ml-1 transition-transform {isExpanded ? 'rotate-90' : ''}" />
+											{/if}
+										</button>
+
+										<!-- Expanded path details -->
+										{#if isExpanded && userCompletedDaily}
+											<div class="mt-2 p-2 bg-bg-dark-tertiary rounded-lg text-xs">
+												<div class="flex items-center justify-between mb-2">
+													<span class="text-text-dark-muted font-medium">Path taken:</span>
+													<button onclick={() => expandedPathUserId = null} class="text-text-dark-muted hover:text-text-dark p-1">
+														<X size={14} />
+													</button>
+												</div>
+												<div class="flex flex-wrap gap-1 items-center">
+													{#each entry.path as step, i}
+														<span class="{i === 0 ? 'text-success' : i === entry.path.length - 1 ? 'text-gold' : 'text-text-dark'}">
+															{step.article_title.replace(/_/g, ' ')}
+														</span>
+														{#if i < entry.path.length - 1}
+															<ChevronRight size={12} class="text-text-dark-muted flex-shrink-0" />
+														{/if}
+													{/each}
+												</div>
+											</div>
+										{/if}
 									{:else if activeTab !== 'daily'}
 										<p class="text-xs text-text-dark-muted">
 											{entry.games_played} {entry.games_played === 1 ? 'day' : 'days'} played
