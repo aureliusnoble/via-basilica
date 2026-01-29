@@ -63,16 +63,38 @@ export async function fetchArticleInfo(title: string): Promise<{
 	};
 }
 
+// All valid target article names for link verification
+const TARGET_LINK_VARIANTS = [
+	'Basil of Caesarea',
+	'Basil the Great',
+	'Saint Basil the Great',
+	'St. Basil the Great',
+	'Saint Basil of Caesarea',
+	'St. Basil of Caesarea',
+	'Basil of Cappadocia',
+	'Saint Basil'
+];
+
+function isTargetTitle(title: string): boolean {
+	const normalized = title.toLowerCase().replace(/_/g, ' ');
+	return TARGET_LINK_VARIANTS.some(t => t.toLowerCase() === normalized);
+}
+
 export async function verifyLinkExists(fromTitle: string, toTitle: string): Promise<boolean> {
 	// Normalize titles: Wikipedia API uses spaces, but we store with underscores
 	const normalizedFrom = fromTitle.replace(/_/g, ' ');
 	const normalizedTo = toTitle.replace(/_/g, ' ');
 
+	// If this is a link to the target article, check all variants
+	const titlesToCheck = isTargetTitle(normalizedTo)
+		? TARGET_LINK_VARIANTS
+		: [normalizedTo];
+
 	const params = new URLSearchParams({
 		action: 'query',
 		prop: 'links',
 		titles: normalizedFrom,
-		pltitles: normalizedTo,
+		pltitles: titlesToCheck.join('|'),
 		format: 'json'
 	});
 
@@ -85,8 +107,11 @@ export async function verifyLinkExists(fromTitle: string, toTitle: string): Prom
 	const pageId = Object.keys(pages)[0];
 	const links = pages[pageId]?.links || [];
 
-	// Compare normalized titles (Wikipedia returns titles with spaces)
-	return links.some((link: { title: string }) => link.title === normalizedTo);
+	// Check if any of the target variants exist as links
+	const titlesToCheckLower = titlesToCheck.map(t => t.toLowerCase());
+	return links.some((link: { title: string }) =>
+		titlesToCheckLower.includes(link.title.toLowerCase())
+	);
 }
 
 // Fetch backlinks (pages that link TO the given article)

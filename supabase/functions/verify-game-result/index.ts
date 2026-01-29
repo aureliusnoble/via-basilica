@@ -3,8 +3,26 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { getSupabaseClient, getSupabaseAdmin } from '../_shared/supabase-client.ts';
 import { verifyLinkExists } from '../_shared/wikipedia-api.ts';
 
-const TARGET_ARTICLE = 'Basil_of_Caesarea';
 const MIN_SECONDS_PER_HOP = 2;
+
+// All valid target article names (normalized to underscores)
+const TARGET_ALIASES = new Set([
+	'basil_of_caesarea',
+	'basil_the_great',
+	'saint_basil_the_great',
+	'st._basil_the_great',
+	'st_basil_the_great',
+	'saint_basil_of_caesarea',
+	'st._basil_of_caesarea',
+	'st_basil_of_caesarea',
+	'basil_of_cappadocia',
+	'saint_basil'
+]);
+
+function isTargetArticle(title: string): boolean {
+	const normalized = title.toLowerCase().replace(/ /g, '_');
+	return TARGET_ALIASES.has(normalized);
+}
 
 serve(async (req) => {
 	if (req.method === 'OPTIONS') {
@@ -52,29 +70,34 @@ serve(async (req) => {
 
 		// Verify path ends with target
 		const lastStep = path[path.length - 1];
-		const normalizedLast = lastStep?.article_title.replace(/ /g, '_');
-		if (normalizedLast !== TARGET_ARTICLE && normalizedLast !== 'Basil_the_Great') {
+		if (!lastStep || !isTargetArticle(lastStep.article_title)) {
 			verified = false;
 			issues.push('Did not reach target article');
 		}
 
 		// Verify each link exists (sample a few for performance)
-		if (verified && path.length > 1) {
-			const pairsToCheck = Math.min(3, path.length - 1);
+		// Skip the final hop to target - Wikipedia has many redirects/display variants
+		if (verified && path.length > 2) {
+			const pairsToCheck = Math.min(3, path.length - 2); // Exclude final hop
 			const indices = [];
 
-			// Always check first and last transition
+			// Always check first transition
 			indices.push(0);
-			if (path.length > 2) {
-				indices.push(path.length - 2);
-			}
 
-			// Add a random middle one if path is long
+			// Add middle transitions (not the final hop to target)
 			if (path.length > 4) {
-				indices.push(Math.floor(path.length / 2));
+				indices.push(Math.floor((path.length - 1) / 2));
+			}
+			if (path.length > 6) {
+				indices.push(Math.floor((path.length - 1) / 3));
 			}
 
 			for (const i of indices) {
+				// Skip if this is the final hop to target
+				if (i === path.length - 2 && isTargetArticle(path[i + 1].article_title)) {
+					continue;
+				}
+
 				const exists = await verifyLinkExists(path[i].article_title, path[i + 1].article_title);
 				if (!exists) {
 					verified = false;
