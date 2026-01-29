@@ -64,8 +64,11 @@
 			}
 
 			// If we have blocked categories, check links in background and apply styles via DOM
+			console.log('[WikiArticleView] Article loaded. blockedCategories:', blockedCategories, 'containerRef:', !!containerRef);
 			if (blockedCategories.length > 0 && containerRef) {
 				applyBlockedStylesAsync(title);
+			} else {
+				console.log('[WikiArticleView] Skipping blocked check: blockedCategories.length=', blockedCategories.length, 'containerRef=', !!containerRef);
 			}
 		} catch (err) {
 			if (title === currentlyLoadedTitle) {
@@ -77,7 +80,11 @@
 	}
 
 	async function applyBlockedStylesAsync(title: string) {
-		if (!containerRef) return;
+		console.log('[WikiArticleView] applyBlockedStylesAsync called for:', title, 'blockedCategories:', blockedCategories);
+		if (!containerRef) {
+			console.log('[WikiArticleView] containerRef is null, returning');
+			return;
+		}
 
 		// Extract link titles from current DOM
 		const links = containerRef.querySelectorAll('a[data-wiki-link]');
@@ -96,6 +103,7 @@
 			}
 		});
 
+		console.log('[WikiArticleView] Found', linkTitles.length, 'wiki links to check');
 		if (linkTitles.length === 0) return;
 
 		// Show progress bar
