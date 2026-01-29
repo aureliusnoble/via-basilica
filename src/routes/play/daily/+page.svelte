@@ -53,8 +53,8 @@
 			}
 
 			// Check for existing result
-			if (auth.user) {
-				existingResult = await getTodaysResult(auth.user.id);
+			if (auth.user && challenge) {
+				existingResult = await getTodaysResult(auth.user.id, challenge.id);
 				if (existingResult?.completed_at) {
 					// Already completed
 					loading = false;

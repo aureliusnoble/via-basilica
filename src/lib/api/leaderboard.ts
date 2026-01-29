@@ -18,8 +18,7 @@ export async function getDailyLeaderboard(date?: string): Promise<LeaderboardEnt
 			points_awarded,
 			path,
 			powerups_used,
-			profiles!inner(username, display_name, avatar_url, level),
-			daily_powerup_selections(slot_1, slot_2)
+			profiles!inner(username, display_name, avatar_url, level)
 		`
 		)
 		.eq('mode', 'daily')
@@ -44,8 +43,8 @@ export async function getDailyLeaderboard(date?: string): Promise<LeaderboardEnt
 		points_awarded: row.points_awarded,
 		path: row.path,
 		powerups_used: row.powerups_used,
-		slot_1: row.daily_powerup_selections?.[0]?.slot_1 || null,
-		slot_2: row.daily_powerup_selections?.[0]?.slot_2 || null,
+		slot_1: null,
+		slot_2: null,
 		level: row.profiles.level
 	}));
 }

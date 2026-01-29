@@ -1,6 +1,5 @@
 import { getSupabase } from './supabase.js';
 import type { GameResult, GameMode, PathStep } from '$lib/types/database.js';
-import { format } from 'date-fns';
 
 export async function createGameResult(
 	userId: string,
@@ -102,16 +101,20 @@ export async function completeGameResult(
 	};
 }
 
-export async function getTodaysResult(userId: string): Promise<GameResult | null> {
+export async function getTodaysResult(userId: string, challengeId?: number): Promise<GameResult | null> {
 	const supabase = getSupabase();
-	const today = format(new Date(), 'yyyy-MM-dd');
+
+	// If challengeId not provided, we can't look up today's result
+	if (!challengeId) {
+		return null;
+	}
 
 	const { data, error } = await supabase
 		.from('game_results')
-		.select('*, daily_challenges!inner(challenge_date)')
+		.select('*')
 		.eq('user_id', userId)
 		.eq('mode', 'daily')
-		.eq('daily_challenges.challenge_date', today)
+		.eq('challenge_id', challengeId)
 		.single();
 
 	if (error) {

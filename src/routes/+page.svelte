@@ -21,10 +21,10 @@
 	let challengeLoading = $state(true);
 	let resultLoading = $state(false);
 
-	async function loadResult(userId: string) {
+	async function loadResult(userId: string, challengeId: number) {
 		resultLoading = true;
 		try {
-			todaysResult = await getTodaysResult(userId);
+			todaysResult = await getTodaysResult(userId, challengeId);
 		} catch (error) {
 			console.error('Error loading result:', error);
 		} finally {
@@ -43,7 +43,7 @@
 			// Load result in parallel if user is already authenticated
 			if (auth.user && challenge) {
 				console.log('[HomePage] User authenticated, loading result');
-				loadResult(auth.user.id);
+				loadResult(auth.user.id, challenge.id);
 			}
 		} catch (error) {
 			console.error('[HomePage] Error loading home data:', error);
@@ -58,7 +58,7 @@
 		const user = auth.user;
 		const currentChallenge = untrack(() => challenge);
 		if (user && currentChallenge && !todaysResult && !resultLoading) {
-			loadResult(user.id);
+			loadResult(user.id, currentChallenge.id);
 		}
 	});
 
