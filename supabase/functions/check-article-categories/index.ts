@@ -13,30 +13,45 @@ const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
 const WIKIDATA_BATCH_SIZE = 50;
 
 // Target article and its aliases - these should NEVER be blocked
+// Complete list from Wikipedia redirects
 const TARGET_ALIASES = new Set([
+	'basil of caesarea',
 	'basil_of_caesarea',
 	'basil the great',
 	'basil_the_great',
-	'saint_basil_the_great',
-	'st._basil_the_great',
-	'st_basil_the_great',
-	'saint_basil_of_caesarea',
-	'st._basil_of_caesarea',
-	'st_basil_of_caesarea',
-	'basil_of_cappadocia',
-	'saint_basil',
-	'basil of caesarea',
-	'saint basil the great',
 	'st. basil the great',
-	'saint basil of caesarea',
+	'st._basil_the_great',
+	'saint basil',
+	'saint_basil',
+	'saint basil the great',
+	'saint_basil_the_great',
+	'st. basil',
+	'st._basil',
+	'st basil',
+	'st_basil',
 	'st. basil of caesarea',
+	'st._basil_of_caesarea',
+	'saint basil of caesarea',
+	'saint_basil_of_caesarea',
+	'saint basil\'s day',
+	'saint_basil\'s_day',
+	'basil of cesareea',
+	'basil_of_cesareea',
+	'st basil the great',
+	'st_basil_the_great',
+	'basil, saint',
+	'basil,_saint',
+	'basil, saint bishop of caesarea',
+	'basil,_saint_bishop_of_caesarea',
 	'basil of cappadocia',
-	'saint basil'
+	'basil_of_cappadocia',
+	'basil of neocaesarea',
+	'basil_of_neocaesarea'
 ]);
 
 function isTargetArticle(title: string): boolean {
-	return TARGET_ALIASES.has(title.toLowerCase().replace(/ /g, '_')) ||
-		TARGET_ALIASES.has(title.toLowerCase());
+	const normalized = title.toLowerCase();
+	return TARGET_ALIASES.has(normalized) || TARGET_ALIASES.has(normalized.replace(/ /g, '_'));
 }
 
 // Wikipedia category keywords that map to our categories

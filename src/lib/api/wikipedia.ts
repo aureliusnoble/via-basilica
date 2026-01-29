@@ -289,18 +289,25 @@ export async function fetchRandomArticle(): Promise<{ title: string; url: string
 	};
 }
 
-// All known titles/redirects for the target article
+// All known titles/redirects for the target article (from Wikipedia redirect list)
 const TARGET_ALIASES = [
 	'basil_of_caesarea',
 	'basil_the_great',
-	'saint_basil_the_great',
 	'st._basil_the_great',
-	'st_basil_the_great',
-	'saint_basil_of_caesarea',
+	'saint_basil',
+	'saint_basil_the_great',
+	'st._basil',
+	'st_basil',
 	'st._basil_of_caesarea',
-	'st_basil_of_caesarea',
+	'saint_basil_of_caesarea',
+	'saint_basil\'s_day',
+	'basil_of_cesareea',
+	'saint_basil_the_great',
+	'st_basil_the_great',
+	'basil,_saint',
+	'basil,_saint_bishop_of_caesarea',
 	'basil_of_cappadocia',
-	'saint_basil'
+	'basil_of_neocaesarea'
 ];
 
 export function isTargetArticle(title: string): boolean {

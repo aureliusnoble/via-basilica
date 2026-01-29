@@ -5,18 +5,24 @@ import { verifyLinkExists } from '../_shared/wikipedia-api.ts';
 
 const MIN_SECONDS_PER_HOP = 2;
 
-// All valid target article names (normalized to underscores)
+// All valid target article names (complete list from Wikipedia redirects)
 const TARGET_ALIASES = new Set([
 	'basil_of_caesarea',
 	'basil_the_great',
-	'saint_basil_the_great',
 	'st._basil_the_great',
-	'st_basil_the_great',
-	'saint_basil_of_caesarea',
+	'saint_basil',
+	'saint_basil_the_great',
+	'st._basil',
+	'st_basil',
 	'st._basil_of_caesarea',
-	'st_basil_of_caesarea',
+	'saint_basil_of_caesarea',
+	'saint_basil\'s_day',
+	'basil_of_cesareea',
+	'st_basil_the_great',
+	'basil,_saint',
+	'basil,_saint_bishop_of_caesarea',
 	'basil_of_cappadocia',
-	'saint_basil'
+	'basil_of_neocaesarea'
 ]);
 
 function isTargetArticle(title: string): boolean {

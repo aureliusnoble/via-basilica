@@ -63,16 +63,25 @@ export async function fetchArticleInfo(title: string): Promise<{
 	};
 }
 
-// All valid target article names for link verification
+// All valid target article names for link verification (complete list from Wikipedia redirects)
 const TARGET_LINK_VARIANTS = [
 	'Basil of Caesarea',
 	'Basil the Great',
-	'Saint Basil the Great',
 	'St. Basil the Great',
-	'Saint Basil of Caesarea',
+	'Saint Basil',
+	'Saint Basil the Great',
+	'St. Basil',
+	'St Basil',
 	'St. Basil of Caesarea',
+	'Saint Basil of Caesarea',
+	'Saint Basil\'s day',
+	'Basil of Cesareea',
+	'St Basil the Great',
+	'St Basil The Great',
+	'Basil, Saint',
+	'Basil, Saint Bishop of Caesarea',
 	'Basil of Cappadocia',
-	'Saint Basil'
+	'Basil of Neocaesarea'
 ];
 
 function isTargetTitle(title: string): boolean {
