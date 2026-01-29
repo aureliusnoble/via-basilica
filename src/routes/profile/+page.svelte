@@ -8,6 +8,7 @@
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import ThemeToggle from '$lib/components/layout/ThemeToggle.svelte';
 	import { getAuthState } from '$lib/state/auth.svelte.js';
+	import { setShowBiographyModal } from '$lib/state/ui.svelte.js';
 	import { signOut } from '$lib/api/auth.js';
 	import { getXpProgress, getLevelTitle } from '$lib/utils/constants.js';
 	import { toast } from 'svelte-sonner';
@@ -116,14 +117,14 @@
 						<p class="font-medium">Powerups</p>
 					</Card>
 				</a>
-				<a href="{base}/about">
+				<button onclick={() => setShowBiographyModal(true)} class="text-left w-full">
 					<Card padding="sm" class="text-center hover:ring-2 hover:ring-gold/50 transition-all">
 						<div class="flex justify-center mb-2">
 							<BookOpen size={28} class="text-gold" />
 						</div>
 						<p class="font-medium">About Basil</p>
 					</Card>
-				</a>
+				</button>
 			</div>
 
 			<!-- Settings -->
