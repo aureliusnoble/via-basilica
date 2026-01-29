@@ -6,6 +6,7 @@
 	import type { PathStep } from '$lib/types/database.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { shareResult } from '$lib/utils/share.js';
+	import { getLevelTitle, getXpProgress, LEVEL_TITLES } from '$lib/utils/constants.js';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -18,6 +19,8 @@
 		pointsAwarded?: number;
 		xpEarned?: number;
 		rank?: number | null;
+		userLevel?: number;
+		userTotalXp?: number;
 		onClose: () => void;
 	}
 
@@ -31,8 +34,19 @@
 		pointsAwarded = 0,
 		xpEarned = 0,
 		rank = null,
+		userLevel,
+		userTotalXp,
 		onClose
 	}: Props = $props();
+
+	const nextRankTitle = $derived.by(() => {
+		if (!userLevel) return null;
+		const thresholds = Object.keys(LEVEL_TITLES).map(Number).sort((a, b) => a - b);
+		for (const threshold of thresholds) {
+			if (threshold > userLevel) return LEVEL_TITLES[threshold];
+		}
+		return 'Bishop'; // Max rank
+	});
 
 	function formatRank(n: number): string {
 		const suffixes = ['th', 'st', 'nd', 'rd'];
@@ -169,15 +183,33 @@
 			</div>
 		</div>
 
-		<!-- Progress bar -->
-		<div class="mb-6">
-			<div class="h-2 bg-bg-dark-tertiary rounded-full overflow-hidden">
-				{#key open}
-					<div class="h-full bg-gradient-to-r from-gold to-gold-dark animate-progress-fill"></div>
-				{/key}
+		<!-- Rank Progress Bar -->
+		{#if userLevel && userTotalXp !== undefined}
+			{@const currentTitle = getLevelTitle(userLevel)}
+			{@const progress = getXpProgress(userTotalXp)}
+			<div class="mb-6">
+				<div class="flex justify-between text-sm mb-2">
+					<span class="text-gold font-medium">{currentTitle}</span>
+					<span class="text-text-dark-muted">{nextRankTitle}</span>
+				</div>
+				<div class="h-2 bg-bg-dark-tertiary rounded-full overflow-hidden">
+					{#key open}
+						<div
+							class="h-full bg-gradient-to-r from-gold to-gold-dark animate-progress-fill"
+							style="--target-width: {progress.percentage}%"
+						></div>
+					{/key}
+				</div>
+				<p class="text-xs text-text-dark-muted mt-1">
+					{progress.current} / {progress.required} XP to next rank
+				</p>
 			</div>
-			<p class="text-xs text-text-dark-muted mt-1">100% Complete</p>
-		</div>
+		{:else}
+			<!-- Fallback for anonymous users -->
+			<div class="mb-6">
+				<p class="text-xs text-text-dark-muted">Sign in to track your rank progress</p>
+			</div>
+		{/if}
 
 		<!-- Actions -->
 		<div class="space-y-3">
@@ -200,7 +232,7 @@
 			width: 0%;
 		}
 		to {
-			width: 100%;
+			width: var(--target-width, 100%);
 		}
 	}
 

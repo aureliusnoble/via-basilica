@@ -213,6 +213,8 @@
 		challengeNumber={challenge.id}
 		startArticle={challenge.start_article}
 		rank={playerRank}
+		userLevel={auth.profile?.level}
+		userTotalXp={auth.profile?.total_xp}
 		onClose={handleVictoryClose}
 	/>
 {:else}

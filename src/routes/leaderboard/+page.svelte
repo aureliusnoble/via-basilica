@@ -11,6 +11,7 @@
 		type LeaderboardType
 	} from '$lib/api/leaderboard.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
+	import { getLevelTitle } from '$lib/utils/constants.js';
 	import { format } from 'date-fns';
 	import type { LeaderboardEntry } from '$lib/types/database.js';
 
@@ -134,6 +135,11 @@
 									<p class="font-medium truncate">
 										{entry.display_name || entry.username}
 									</p>
+									{#if entry.level}
+										<span class="text-xs text-gold/80 px-1.5 py-0.5 bg-gold/10 rounded">
+											{getLevelTitle(entry.level)}
+										</span>
+									{/if}
 									<!-- Position change indicator (monthly only) -->
 									{#if activeTab !== 'daily' && entry.position_change !== undefined}
 										{#if entry.position_change > 0}

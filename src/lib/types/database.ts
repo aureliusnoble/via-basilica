@@ -70,6 +70,7 @@ export interface LeaderboardEntry {
 	powerups_used: any[];
 	slot_1: string | null;
 	slot_2: string | null;
+	level?: number;
 	// For monthly leaderboards
 	games_played?: number;
 	average_hops?: number;

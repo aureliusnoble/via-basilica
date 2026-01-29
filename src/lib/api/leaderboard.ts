@@ -18,7 +18,7 @@ export async function getDailyLeaderboard(date?: string): Promise<LeaderboardEnt
 			points_awarded,
 			path,
 			powerups_used,
-			profiles!inner(username, display_name, avatar_url),
+			profiles!inner(username, display_name, avatar_url, level),
 			daily_powerup_selections(slot_1, slot_2)
 		`
 		)
@@ -45,7 +45,8 @@ export async function getDailyLeaderboard(date?: string): Promise<LeaderboardEnt
 		path: row.path,
 		powerups_used: row.powerups_used,
 		slot_1: row.daily_powerup_selections?.[0]?.slot_1 || null,
-		slot_2: row.daily_powerup_selections?.[0]?.slot_2 || null
+		slot_2: row.daily_powerup_selections?.[0]?.slot_2 || null,
+		level: row.profiles.level
 	}));
 }
 
@@ -64,7 +65,7 @@ export async function getMonthlyTotalLeaderboard(): Promise<LeaderboardEntry[]> 
 			`
 			user_id,
 			points_awarded,
-			profiles!inner(username, display_name, avatar_url)
+			profiles!inner(username, display_name, avatar_url, level)
 		`
 		)
 		.eq('mode', 'daily')
@@ -84,6 +85,7 @@ export async function getMonthlyTotalLeaderboard(): Promise<LeaderboardEntry[]> 
 		username: string;
 		display_name: string | null;
 		avatar_url: string | null;
+		level: number;
 		total_points: number;
 		games_played: number;
 	}>();
@@ -100,6 +102,7 @@ export async function getMonthlyTotalLeaderboard(): Promise<LeaderboardEntry[]> 
 				username: profile.username,
 				display_name: profile.display_name,
 				avatar_url: profile.avatar_url,
+				level: profile.level,
 				total_points: row.points_awarded,
 				games_played: 1
 			});
@@ -136,6 +139,7 @@ export async function getMonthlyTotalLeaderboard(): Promise<LeaderboardEntry[]> 
 			powerups_used: [],
 			slot_1: null,
 			slot_2: null,
+			level: row.level,
 			position_change
 		};
 	});
@@ -155,7 +159,7 @@ export async function getMonthlyAverageLeaderboard(): Promise<LeaderboardEntry[]
 			`
 			user_id,
 			points_awarded,
-			profiles!inner(username, display_name, avatar_url)
+			profiles!inner(username, display_name, avatar_url, level)
 		`
 		)
 		.eq('mode', 'daily')
@@ -175,6 +179,7 @@ export async function getMonthlyAverageLeaderboard(): Promise<LeaderboardEntry[]
 		username: string;
 		display_name: string | null;
 		avatar_url: string | null;
+		level: number;
 		total_points: number;
 		games_played: number;
 	}>();
@@ -191,6 +196,7 @@ export async function getMonthlyAverageLeaderboard(): Promise<LeaderboardEntry[]
 				username: profile.username,
 				display_name: profile.display_name,
 				avatar_url: profile.avatar_url,
+				level: profile.level,
 				total_points: row.points_awarded,
 				games_played: 1
 			});
@@ -233,6 +239,7 @@ export async function getMonthlyAverageLeaderboard(): Promise<LeaderboardEntry[]
 			powerups_used: [],
 			slot_1: null,
 			slot_2: null,
+			level: row.level,
 			position_change
 		};
 	});
