@@ -32,7 +32,7 @@
 			const success = await shareResult(
 				challenge.id,
 				todaysResult.hops,
-				todaysResult.duration_seconds,
+				todaysResult.duration_seconds ?? 0,
 				challenge.start_article,
 				todaysResult.path,
 				challenge.challenge_date,

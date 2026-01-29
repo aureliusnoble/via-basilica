@@ -251,9 +251,11 @@
 			<Button onclick={handleShare} loading={sharing} class="w-full">
 				Share Result
 			</Button>
-			<Button href="/leaderboard" variant="secondary" class="w-full">
-				View Leaderboard
-			</Button>
+			{#if mode === 'daily'}
+				<Button href="/leaderboard" variant="secondary" class="w-full">
+					View Leaderboard
+				</Button>
+			{/if}
 			<Button onclick={handleClose} variant="ghost" class="w-full">
 				Close
 			</Button>

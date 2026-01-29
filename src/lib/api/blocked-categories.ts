@@ -185,13 +185,19 @@ export async function getArticleCategories(titles: string[]): Promise<Categories
 	if (!supabase) return {};
 
 	try {
-		// Use a dummy blocked category to trigger classification
-		const { data, error } = await supabase.functions.invoke('check-article-categories', {
+		// Add timeout to prevent hanging (10 seconds)
+		const timeoutPromise = new Promise<{ data: null; error: Error }>((_, reject) =>
+			setTimeout(() => reject(new Error('Timeout')), 10000)
+		);
+
+		const fetchPromise = supabase.functions.invoke('check-article-categories', {
 			body: {
 				titles,
 				blockedCategories: ['__dummy__'] // Won't match anything, but will classify
 			}
 		});
+
+		const { data, error } = await Promise.race([fetchPromise, timeoutPromise]);
 
 		if (error) {
 			console.error('Error getting article categories:', error);
