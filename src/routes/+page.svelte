@@ -84,11 +84,17 @@
 		}
 	});
 
-	// React to auth state changes (for when user logs in after page load)
+	// React to auth state changes (for when user logs in after page load or auth restores on new device)
 	$effect(() => {
 		const user = auth.user;
+		const isInitialized = auth.initialized;
 		const currentChallenge = untrack(() => challenge);
-		if (user && currentChallenge && !todaysResult && !resultLoading) {
+		const currentResult = untrack(() => todaysResult);
+		const isLoading = untrack(() => resultLoading);
+
+		// Load result when auth is ready and we have a challenge but no result yet
+		if (isInitialized && user && currentChallenge && !currentResult && !isLoading) {
+			console.log('[HomePage] Auth ready, loading result for user:', user.id);
 			loadResult(user.id, currentChallenge.id);
 		}
 	});

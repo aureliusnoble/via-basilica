@@ -44,7 +44,7 @@
 	let previousXp = $state(0);
 	let currentCategory = $state<string | null>(null);
 
-	onMount(async () => {
+	async function initializeGame() {
 		try {
 			// Load challenge
 			challenge = await getTodaysChallenge();
@@ -55,7 +55,7 @@
 				return;
 			}
 
-			// Check for existing result
+			// Check for existing result (requires auth to be ready)
 			if (auth.user && challenge) {
 				existingResult = await getTodaysResult(auth.user.id, challenge.id);
 				if (existingResult?.completed_at) {
@@ -63,10 +63,10 @@
 					loading = false;
 					return;
 				}
-			}
-			// Set gameResultId from existing incomplete result for resume
-			if (existingResult) {
-				gameResultId = existingResult.id;
+				// Set gameResultId from existing incomplete result for resume
+				if (existingResult) {
+					gameResultId = existingResult.id;
+				}
 			}
 
 			// Try to resume from storage
@@ -87,6 +87,23 @@
 			toast.error('Failed to load challenge');
 		} finally {
 			loading = false;
+		}
+	}
+
+	onMount(async () => {
+		// Wait for auth to initialize before checking for existing results
+		// This ensures we detect completed games on new devices
+		if (!auth.initialized) {
+			// Auth still loading, wait for it via effect
+			return;
+		}
+		await initializeGame();
+	});
+
+	// Handle auth initialization completing after mount
+	$effect(() => {
+		if (auth.initialized && loading && !challenge) {
+			initializeGame();
 		}
 	});
 
