@@ -18,6 +18,8 @@
 	import { fetchRandomArticle, isTargetArticle } from '$lib/api/wikipedia.js';
 	import { toast } from 'svelte-sonner';
 
+	let { data } = $props();
+
 	const game = getGameState();
 
 	let loading = $state(true);
@@ -25,11 +27,21 @@
 	let elapsedSeconds = $state(0);
 	let timerInterval = $state<ReturnType<typeof setInterval> | null>(null);
 	let startArticle = $state('');
+	let gameStartDate = $state(new Date());
 
 	onMount(async () => {
 		try {
-			const article = await fetchRandomArticle();
+			let article: { title: string };
+
+			// Use preset start if provided via URL, otherwise fetch random
+			if (data.presetStart) {
+				article = { title: data.presetStart };
+			} else {
+				article = await fetchRandomArticle();
+			}
+
 			startArticle = article.title;
+			gameStartDate = new Date();
 			startGame('random', article.title, null);
 			startTimer();
 		} catch (error) {
@@ -80,6 +92,7 @@
 		try {
 			const article = await fetchRandomArticle();
 			startArticle = article.title;
+			gameStartDate = new Date();
 			startGame('random', article.title, null);
 			startTimer();
 			showVictory = false;
@@ -120,6 +133,8 @@
 		duration={elapsedSeconds}
 		challengeNumber={0}
 		{startArticle}
+		challengeDate={gameStartDate}
+		mode="random"
 		onClose={handleVictoryClose}
 	/>
 

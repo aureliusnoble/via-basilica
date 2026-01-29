@@ -229,6 +229,8 @@
 		duration={elapsedSeconds}
 		challengeNumber={challenge.id}
 		startArticle={challenge.start_article}
+		challengeDate={challenge.challenge_date}
+		mode="daily"
 		rank={playerRank}
 		{xpEarned}
 		{previousXp}

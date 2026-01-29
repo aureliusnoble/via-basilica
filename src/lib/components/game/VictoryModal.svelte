@@ -16,6 +16,8 @@
 		duration: number;
 		challengeNumber: number;
 		startArticle: string;
+		challengeDate: string | Date;
+		mode?: 'daily' | 'random' | 'archive';
 		pointsAwarded?: number;
 		xpEarned?: number;
 		previousXp?: number;
@@ -32,6 +34,8 @@
 		duration,
 		challengeNumber,
 		startArticle,
+		challengeDate,
+		mode = 'daily',
 		pointsAwarded = 0,
 		xpEarned = 0,
 		previousXp = 0,
@@ -82,7 +86,15 @@
 	async function handleShare() {
 		sharing = true;
 		try {
-			const success = await shareResult(challengeNumber, hops, duration, startArticle, path);
+			const success = await shareResult(
+				challengeNumber,
+				hops,
+				duration,
+				startArticle,
+				path,
+				challengeDate,
+				mode
+			);
 			if (success) {
 				toast.success('Copied to clipboard!');
 			}

@@ -1,37 +1,175 @@
 import type { PathStep } from '$lib/types/database.js';
+import { formatDate, formatDuration } from './date-helpers.js';
+
+type Category = 'H' | 'R' | 'G' | 'S' | 'A' | 'P' | '*';
+
+const CATEGORY_KEYWORDS: Record<Category, string[]> = {
+	H: [
+		'empire',
+		'ancient',
+		'war',
+		'century',
+		'dynasty',
+		'medieval',
+		'kingdom',
+		'roman',
+		'byzantine',
+		'history',
+		'battle',
+		'civilization'
+	],
+	R: [
+		'church',
+		'saint',
+		'bishop',
+		'christian',
+		'orthodox',
+		'catholic',
+		'pope',
+		'monastery',
+		'theology',
+		'religion',
+		'god',
+		'jesus',
+		'bible',
+		'priest'
+	],
+	G: [
+		'city',
+		'country',
+		'river',
+		'region',
+		'mountain',
+		'island',
+		'continent',
+		'capital',
+		'province',
+		'geography',
+		'ocean',
+		'sea',
+		'lake'
+	],
+	S: [
+		'theory',
+		'physics',
+		'chemistry',
+		'biology',
+		'mathematics',
+		'scientist',
+		'experiment',
+		'science',
+		'atom',
+		'cell',
+		'evolution',
+		'quantum'
+	],
+	A: [
+		'painting',
+		'music',
+		'artist',
+		'composer',
+		'literature',
+		'author',
+		'poet',
+		'novel',
+		'art',
+		'sculpture',
+		'opera',
+		'symphony',
+		'film'
+	],
+	P: [
+		'politician',
+		'emperor',
+		'king',
+		'queen',
+		'president',
+		'leader',
+		'minister',
+		'general',
+		'ruler',
+		'monarch',
+		'dictator'
+	],
+	'*': [] // fallback, no keywords
+};
+
+export function detectCategory(articleTitle: string): Category {
+	const titleLower = articleTitle.toLowerCase().replace(/_/g, ' ');
+
+	// Check each category's keywords
+	for (const [category, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
+		if (category === '*') continue;
+		for (const keyword of keywords) {
+			if (titleLower.includes(keyword)) {
+				return category as Category;
+			}
+		}
+	}
+
+	return '*'; // fallback
+}
 
 export function generateShareText(
-	challengeNumber: number,
+	challengeNumber: number | null,
 	hops: number,
 	durationSeconds: number,
 	startArticle: string,
-	path: PathStep[]
+	path: PathStep[],
+	challengeDate: Date | string,
+	mode: 'daily' | 'random' | 'archive' = 'daily'
 ): string {
-	const minutes = Math.floor(durationSeconds / 60);
-	const seconds = durationSeconds % 60;
-	const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
+	const dateStr = formatDate(challengeDate);
+	const timeStr = formatDuration(durationSeconds);
 
-	// Generate path as vertical list with icons
-	const pathList = path.map((step, i) => {
-		const title = step.article_title.replace(/_/g, ' ');
-		if (i === 0) {
-			return `📍 ${title}`;
-		}
-		if (i === path.length - 1) {
-			return `☦️ ${title}`;
-		}
-		return `   ↓\n○ ${title}`;
-	}).join('\n   ↓\n');
+	// Clean article names
+	const cleanStart = startArticle.replace(/_/g, ' ');
+	const targetArticle = 'Basil the Great'; // Always the same
 
-	return `╔═══════════════════════════════╗
-     ☦️  VIA BASILICA #${challengeNumber}
-╠═══════════════════════════════╣
-  ⏱️ ${timeStr}   •   👣 ${hops} hops
-╚═══════════════════════════════╝
+	// Truncate long names (max 25 chars)
+	const maxLen = 25;
+	const start =
+		cleanStart.length > maxLen ? cleanStart.slice(0, maxLen - 3) + '...' : cleanStart;
 
-${pathList}
+	// Generate category chain from path (excluding start, it's shown explicitly)
+	const categories = path.slice(1).map((step) => detectCategory(step.article_title));
 
-🔗 aureliusnoble.github.io/via-basilica`;
+	// Format category chain (truncate if > 6 steps)
+	let categoryChain: string;
+	if (categories.length <= 6) {
+		categoryChain = categories.join(' -> ');
+	} else {
+		// Show first 3, ..., last 2
+		const first = categories.slice(0, 3).join(' -> ');
+		const last = categories.slice(-2).join(' -> ');
+		categoryChain = `${first} -> ... -> ${last}`;
+	}
+
+	// Title based on mode
+	const title =
+		mode === 'random'
+			? 'Via Basilica (Random)'
+			: mode === 'archive'
+				? `Via Basilica Archive #${challengeNumber}`
+				: `Via Basilica #${challengeNumber}`;
+
+	// Generate shareable URL
+	let shareUrl: string;
+	if (mode === 'random') {
+		// Include start article in URL for friends to play same game
+		const encodedStart = encodeURIComponent(startArticle.replace(/ /g, '_'));
+		shareUrl = `Try it: aureliusnoble.github.io/via-basilica/play/random?start=${encodedStart}`;
+	} else {
+		shareUrl = 'aureliusnoble.github.io/via-basilica';
+	}
+
+	return `${title}
+${dateStr}
+
+${start} -> ${targetArticle}
+${categoryChain} (${hops} hops | ${timeStr})
+
+${shareUrl}`;
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -59,13 +197,23 @@ export async function copyToClipboard(text: string): Promise<boolean> {
 }
 
 export async function shareResult(
-	challengeNumber: number,
+	challengeNumber: number | null,
 	hops: number,
 	durationSeconds: number,
 	startArticle: string,
-	path: PathStep[]
+	path: PathStep[],
+	challengeDate: Date | string,
+	mode: 'daily' | 'random' | 'archive' = 'daily'
 ): Promise<boolean> {
-	const text = generateShareText(challengeNumber, hops, durationSeconds, startArticle, path);
+	const text = generateShareText(
+		challengeNumber,
+		hops,
+		durationSeconds,
+		startArticle,
+		path,
+		challengeDate,
+		mode
+	);
 
 	// Try native share if available
 	if (navigator.share) {
