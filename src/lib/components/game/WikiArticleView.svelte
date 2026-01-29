@@ -1,5 +1,4 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
 
@@ -17,29 +16,41 @@
 	let loading = $state(true);
 	let error = $state<string | null>(null);
 	let containerRef = $state<HTMLElement | null>(null);
+	let currentlyLoadedTitle = $state('');
 
 	$effect(() => {
-		loadArticle(articleTitle);
+		// Only load if the title has actually changed
+		if (articleTitle && articleTitle !== currentlyLoadedTitle) {
+			loadArticle(articleTitle);
+		}
 	});
 
 	async function loadArticle(title: string) {
 		loading = true;
 		error = null;
+		currentlyLoadedTitle = title;
 		onLoadingChange?.(true);
 
 		try {
 			const article = await fetchArticleHtml(title);
-			content = article.html;
+			// Only update if this is still the article we want
+			if (title === currentlyLoadedTitle) {
+				content = article.html;
 
-			// Scroll to top
-			if (containerRef) {
-				containerRef.scrollTop = 0;
+				// Scroll to top
+				if (containerRef) {
+					containerRef.scrollTop = 0;
+				}
 			}
 		} catch (err) {
-			error = err instanceof Error ? err.message : 'Failed to load article';
+			if (title === currentlyLoadedTitle) {
+				error = err instanceof Error ? err.message : 'Failed to load article';
+			}
 		} finally {
-			loading = false;
-			onLoadingChange?.(false);
+			if (title === currentlyLoadedTitle) {
+				loading = false;
+				onLoadingChange?.(false);
+			}
 		}
 	}
 
