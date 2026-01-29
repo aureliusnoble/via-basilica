@@ -4,13 +4,14 @@
 	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import { handleAuthCallback } from '$lib/api/auth.js';
+	import { exchangeCodeForSession, getSession } from '$lib/api/auth.js';
 	import { toast } from 'svelte-sonner';
 
 	onMount(async () => {
 		const type = page.url.searchParams.get('type');
 		const error = page.url.searchParams.get('error');
 		const errorDescription = page.url.searchParams.get('error_description');
+		const code = page.url.searchParams.get('code');
 
 		if (error) {
 			toast.error(errorDescription || error);
@@ -18,28 +19,48 @@
 			return;
 		}
 
-		// Handle OAuth callback - tokens may be in URL hash or query params
-		const session = handleAuthCallback();
+		// Handle PKCE flow - exchange code for session
+		if (code) {
+			const { session, error: exchangeError } = await exchangeCodeForSession(code);
 
-		if (session) {
-			// Handle different callback types
-			if (type === 'recovery') {
-				// Password recovery - redirect to password change page
-				toast.success('You can now set a new password');
-				goto(`${base}/profile`);
-			} else if (type === 'email_change') {
-				toast.success('Email updated successfully');
-				goto(`${base}/profile`);
-			} else {
-				// Default: OAuth or email verification
-				toast.success('Welcome to Via Basilica!');
-				goto(`${base}/`);
+			if (exchangeError) {
+				console.error('[Auth Callback] Code exchange failed:', exchangeError);
+				toast.error(exchangeError.message || 'Authentication failed');
+				goto(`${base}/auth/login`);
+				return;
 			}
+
+			if (session) {
+				handleSuccess(type);
+				return;
+			}
+		}
+
+		// Check if SDK already processed the session (implicit flow via hash)
+		// The SDK automatically handles tokens in URL hash
+		const session = await getSession();
+		if (session) {
+			handleSuccess(type);
+			return;
+		}
+
+		// No session found, redirect to home
+		console.log('[Auth Callback] No session found, redirecting to home');
+		goto(`${base}/`);
+	});
+
+	function handleSuccess(type: string | null) {
+		if (type === 'recovery') {
+			toast.success('You can now set a new password');
+			goto(`${base}/profile`);
+		} else if (type === 'email_change') {
+			toast.success('Email updated successfully');
+			goto(`${base}/profile`);
 		} else {
-			// No tokens found, redirect to home
+			toast.success('Welcome to Via Basilica!');
 			goto(`${base}/`);
 		}
-	});
+	}
 </script>
 
 <main class="flex items-center justify-center min-h-screen">

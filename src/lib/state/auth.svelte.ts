@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
 import type { Profile } from '$lib/types/database.js';
-import { getSupabaseSafe } from '$lib/api/supabase.js';
-import { getSession, onAuthStateChange, type User, type Session } from '$lib/api/auth.js';
+import { supabase } from '$lib/api/supabase.js';
+import type { User, Session } from '$lib/api/auth.js';
 
 // Auth state using Svelte 5 runes
 let user = $state<User | null>(null);
@@ -35,29 +35,36 @@ export function getAuthState() {
 
 export async function initAuth() {
 	if (!browser || initialized) return;
+	if (!supabase) {
+		console.warn('[Auth] Supabase client not available');
+		loading = false;
+		initialized = true;
+		return;
+	}
 
 	console.log('[Auth] Starting auth initialization...');
 
 	try {
-		// Get initial session from our direct auth implementation
+		// Get initial session using SDK
 		console.log('[Auth] Getting initial session...');
-		const currentSession = await getSession();
+		const { data } = await supabase.auth.getSession();
+		const currentSession = data.session;
 
 		console.log('[Auth] Session retrieved:', currentSession ? 'User logged in' : 'No session');
 
-		session = currentSession;
-		user = currentSession?.user || null;
+		session = currentSession as Session | null;
+		user = (currentSession?.user as User) || null;
 
 		if (user) {
 			console.log('[Auth] Fetching profile for user:', user.id);
 			await fetchProfile(user.id);
 		}
 
-		// Listen for auth changes using our event system
-		onAuthStateChange(async (newSession) => {
-			console.log('[Auth] Auth state changed:', newSession ? 'logged in' : 'logged out');
-			session = newSession;
-			user = newSession?.user || null;
+		// Listen for auth changes using SDK's built-in listener
+		supabase.auth.onAuthStateChange(async (event, newSession) => {
+			console.log('[Auth] Auth state changed:', event, newSession ? 'logged in' : 'logged out');
+			session = newSession as Session | null;
+			user = (newSession?.user as User) || null;
 
 			if (user) {
 				await fetchProfile(user.id);
@@ -76,7 +83,6 @@ export async function initAuth() {
 }
 
 async function fetchProfile(userId: string) {
-	const supabase = getSupabaseSafe();
 	if (!supabase) {
 		console.warn('[Auth] Supabase client not available for profile fetch');
 		return;
