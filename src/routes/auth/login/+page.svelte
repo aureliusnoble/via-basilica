@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -23,7 +24,7 @@
 				toast.error(error.message);
 			} else {
 				toast.success('Welcome back!');
-				goto('/');
+				goto(`${base}/`);
 			}
 		} catch {
 			toast.error('Login failed');
@@ -51,7 +52,7 @@
 	<title>Log In - Via Basilica</title>
 </svelte:head>
 
-<Header title="Log In" backHref="/" />
+<Header title="Log In" backHref="{base}/" />
 
 <main class="max-w-lg mx-auto px-4 py-6">
 	<Card>
@@ -109,9 +110,9 @@
 		</form>
 
 		<div class="mt-6 text-center text-sm">
-			<a href="/auth/reset" class="text-gold hover:underline">Forgot password?</a>
+			<a href="{base}/auth/reset" class="text-gold hover:underline">Forgot password?</a>
 			<span class="text-text-dark-muted mx-2">|</span>
-			<a href="/auth/signup" class="text-gold hover:underline">Create account</a>
+			<a href="{base}/auth/signup" class="text-gold hover:underline">Create account</a>
 		</div>
 	</Card>
 </main>

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { page } from '$app/state';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { getSupabase } from '$lib/api/supabase.js';
@@ -17,7 +18,7 @@
 
 		if (error) {
 			toast.error(errorDescription || error);
-			goto('/auth/login');
+			goto(`${base}/auth/login`);
 			return;
 		}
 
@@ -27,7 +28,7 @@
 
 				if (exchangeError) {
 					toast.error(exchangeError.message);
-					goto('/auth/login');
+					goto(`${base}/auth/login`);
 					return;
 				}
 
@@ -35,23 +36,23 @@
 				if (type === 'recovery') {
 					// Password recovery - redirect to password change page
 					toast.success('You can now set a new password');
-					goto('/profile'); // Or a dedicated password change page
+					goto(`${base}/profile`);
 				} else if (type === 'email_change') {
 					toast.success('Email updated successfully');
-					goto('/profile');
+					goto(`${base}/profile`);
 				} else {
 					// Default: OAuth or email verification
 					toast.success('Welcome to Via Basilica!');
-					goto('/');
+					goto(`${base}/`);
 				}
 			} catch (err) {
 				console.error('Auth callback error:', err);
 				toast.error('Authentication failed');
-				goto('/auth/login');
+				goto(`${base}/auth/login`);
 			}
 		} else {
 			// No code, redirect to home
-			goto('/');
+			goto(`${base}/`);
 		}
 	});
 </script>

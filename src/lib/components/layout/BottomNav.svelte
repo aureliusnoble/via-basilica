@@ -1,24 +1,30 @@
 <script lang="ts">
 	import { page } from '$app/state';
+	import { base } from '$app/paths';
 	import { Home, Trophy, User } from 'lucide-svelte';
 
 	interface NavItem {
-		href: string;
+		path: string;
 		label: string;
 		icon: typeof Home;
 	}
 
 	const navItems: NavItem[] = [
-		{ href: '/', label: 'Home', icon: Home },
-		{ href: '/leaderboard', label: 'Ranks', icon: Trophy },
-		{ href: '/profile', label: 'Profile', icon: User }
+		{ path: '/', label: 'Home', icon: Home },
+		{ path: '/leaderboard', label: 'Ranks', icon: Trophy },
+		{ path: '/profile', label: 'Profile', icon: User }
 	];
 
-	function isActive(href: string): boolean {
-		if (href === '/') {
-			return page.url.pathname === '/';
+	function isActive(path: string): boolean {
+		const fullPath = `${base}${path}`;
+		if (path === '/') {
+			return page.url.pathname === base || page.url.pathname === `${base}/`;
 		}
-		return page.url.pathname.startsWith(href);
+		return page.url.pathname.startsWith(fullPath);
+	}
+
+	function getHref(path: string): string {
+		return `${base}${path}`;
 	}
 </script>
 
@@ -27,9 +33,9 @@
 >
 	<div class="flex justify-around items-center h-16 max-w-lg mx-auto">
 		{#each navItems as item}
-			{@const active = isActive(item.href)}
+			{@const active = isActive(item.path)}
 			<a
-				href={item.href}
+				href={getHref(item.path)}
 				class="flex flex-col items-center justify-center w-16 h-full touch-target transition-colors {active
 					? 'text-gold'
 					: 'text-text-dark-muted hover:text-text-dark'}"

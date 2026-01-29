@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -67,7 +68,7 @@
 	<title>Powerups - Via Basilica</title>
 </svelte:head>
 
-<Header title="Powerups" backHref="/profile" />
+<Header title="Powerups" backHref="{base}/profile" />
 
 <main class="max-w-lg mx-auto px-4 py-6">
 	{#if !auth.isAuthenticated}

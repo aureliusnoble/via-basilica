@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { Gift, BookOpen } from 'lucide-svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -21,7 +22,7 @@
 		if (error) {
 			toast.error('Failed to sign out');
 		} else {
-			goto('/');
+			goto(`${base}/`);
 		}
 	}
 </script>
@@ -107,7 +108,7 @@
 
 			<!-- Quick links -->
 			<div class="grid grid-cols-2 gap-4">
-				<a href="/powerups">
+				<a href="{base}/powerups">
 					<Card padding="sm" class="text-center hover:ring-2 hover:ring-gold/50 transition-all">
 						<div class="flex justify-center mb-2">
 							<Gift size={28} class="text-gold" />
@@ -115,7 +116,7 @@
 						<p class="font-medium">Powerups</p>
 					</Card>
 				</a>
-				<a href="/about">
+				<a href="{base}/about">
 					<Card padding="sm" class="text-center hover:ring-2 hover:ring-gold/50 transition-all">
 						<div class="flex justify-center mb-2">
 							<BookOpen size={28} class="text-gold" />

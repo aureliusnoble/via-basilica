@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -34,7 +35,7 @@
 	<title>Reset Password - Via Basilica</title>
 </svelte:head>
 
-<Header title="Reset Password" backHref="/auth/login" />
+<Header title="Reset Password" backHref="{base}/auth/login" />
 
 <main class="max-w-lg mx-auto px-4 py-6">
 	<Card>
@@ -80,7 +81,7 @@
 			</form>
 
 			<div class="mt-6 text-center text-sm">
-				<a href="/auth/login" class="text-gold hover:underline">Back to login</a>
+				<a href="{base}/auth/login" class="text-gold hover:underline">Back to login</a>
 			</div>
 		{/if}
 	</Card>

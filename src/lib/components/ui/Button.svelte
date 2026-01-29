@@ -1,5 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
+	import { base } from '$app/paths';
 
 	interface Props {
 		variant?: 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -25,6 +26,11 @@
 		children
 	}: Props = $props();
 
+	// Prepend base path to internal links
+	const resolvedHref = $derived(
+		href && href.startsWith('/') ? `${base}${href}` : href
+	);
+
 	const baseClasses =
 		'inline-flex items-center justify-center font-medium rounded-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-gold/50 disabled:opacity-50 disabled:cursor-not-allowed touch-target';
 
@@ -47,7 +53,7 @@
 
 {#if href}
 	<a
-		{href}
+		href={resolvedHref}
 		class={combinedClasses}
 		class:opacity-50={disabled}
 		class:pointer-events-none={disabled}

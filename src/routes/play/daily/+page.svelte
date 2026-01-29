@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import { Check } from 'lucide-svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
@@ -47,7 +48,7 @@
 
 			if (!challenge) {
 				toast.error('No daily challenge available');
-				goto('/play');
+				goto(`${base}/`);
 				return;
 			}
 
@@ -171,7 +172,7 @@
 
 	function handleVictoryClose() {
 		endGame();
-		goto('/');
+		goto(`${base}/`);
 	}
 </script>
 

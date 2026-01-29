@@ -191,7 +191,7 @@
 	<!-- Other Modes -->
 	<div class="grid grid-cols-2 gap-4 mb-6">
 		<Card padding="sm">
-			<a href="/play/random" class="block text-center py-2">
+			<a href="{base}/play/random" class="block text-center py-2">
 				<div class="flex justify-center mb-2">
 					<Dice5 size={28} class="text-gold" />
 				</div>
@@ -200,7 +200,7 @@
 			</a>
 		</Card>
 		<Card padding="sm">
-			<a href="/play/archive" class="block text-center py-2">
+			<a href="{base}/play/archive" class="block text-center py-2">
 				<div class="flex justify-center mb-2">
 					<Calendar size={28} class="text-gold" />
 				</div>

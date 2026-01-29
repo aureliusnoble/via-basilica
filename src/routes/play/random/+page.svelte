@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { base } from '$app/paths';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import GameHeader from '$lib/components/game/GameHeader.svelte';
@@ -34,7 +35,7 @@
 		} catch (error) {
 			console.error('Error starting random game:', error);
 			toast.error('Failed to load random article');
-			goto('/');
+			goto(`${base}/`);
 		} finally {
 			loading = false;
 		}
@@ -70,7 +71,7 @@
 
 	function handleVictoryClose() {
 		endGame();
-		goto('/');
+		goto(`${base}/`);
 	}
 
 	async function handleNewGame() {

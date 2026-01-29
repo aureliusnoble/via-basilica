@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { base } from '$app/paths';
 	import { Check } from 'lucide-svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -122,7 +123,7 @@
 
 	<!-- Link to shop -->
 	<div class="text-center mt-4">
-		<a href="/powerups" class="text-sm text-gold hover:underline">
+		<a href="{base}/powerups" class="text-sm text-gold hover:underline">
 			Need more powerups? Visit the shop
 		</a>
 	</div>

@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { base } from '$app/paths';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
@@ -26,7 +27,7 @@
 	<title>Archive - Via Basilica</title>
 </svelte:head>
 
-<Header title="Archive" backHref="/play" />
+<Header title="Archive" backHref="{base}/" />
 
 <main class="max-w-lg mx-auto px-4 py-6">
 	{#if loading}
@@ -40,7 +41,7 @@
 	{:else}
 		<div class="space-y-3">
 			{#each challenges as challenge}
-				<a href="/play/archive/{challenge.challenge_date}" class="block">
+				<a href="{base}/play/archive/{challenge.challenge_date}" class="block">
 					<Card class="hover:ring-2 hover:ring-gold/50 transition-all">
 						<div class="flex items-center justify-between">
 							<div>
