@@ -168,11 +168,11 @@ body {
 
 /* Modal backdrop */
 .modal-backdrop {
-	position: fixed;
+	position: absolute;
 	inset: 0;
-	z-index: 40;
 	background-color: rgba(0, 0, 0, 0.6);
 	backdrop-filter: blur(4px);
+	/* Note: No z-index here - positioned behind content via DOM order */
 }
 
 /* Custom scrollbar */

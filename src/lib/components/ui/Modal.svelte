@@ -63,7 +63,7 @@
 
 		<!-- Modal content -->
 		<div
-			class="relative z-10 w-full {sizeClasses[size]} bg-bg-dark-secondary rounded-2xl shadow-2xl overflow-hidden"
+			class="relative z-50 w-full {sizeClasses[size]} bg-bg-dark-secondary rounded-2xl shadow-2xl overflow-hidden"
 			role="dialog"
 			aria-modal="true"
 			aria-labelledby={title ? 'modal-title' : undefined}
