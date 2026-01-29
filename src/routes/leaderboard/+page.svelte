@@ -279,7 +279,9 @@
 												<span class="text-xs text-text-dark-muted self-center">+{entry.path.length - 10}</span>
 											{/if}
 											{#if userCompletedDaily}
-												<ChevronRight size={20} class="text-gold ml-1 transition-transform {isExpanded ? 'rotate-90' : ''} {isCurrentUser && !isExpanded ? 'chevron-pulse' : ''}" />
+												<span class="ml-1 {isCurrentUser && !isExpanded ? 'chevron-pulse-container' : ''}">
+													<ChevronRight size={20} class="text-gold transition-transform {isExpanded ? 'rotate-90' : ''}" />
+												</span>
 											{/if}
 										</button>
 

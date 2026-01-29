@@ -358,18 +358,31 @@ html.light .ring-offset-bg-dark {
 	transform: translateY(-2px);
 }
 
-/* Chevron pulse animation for leaderboard */
-.chevron-pulse {
-	animation: chevron-pulse 2s ease-in-out infinite;
+/* Chevron pulse animation for leaderboard - ring expanding outward */
+.chevron-pulse-container {
+	position: relative;
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
 }
 
-@keyframes chevron-pulse {
-	0%, 100% {
-		opacity: 1;
+.chevron-pulse-container::before {
+	content: '';
+	position: absolute;
+	width: 100%;
+	height: 100%;
+	border-radius: 50%;
+	border: 2px solid var(--color-gold);
+	animation: ring-pulse 2s ease-out infinite;
+}
+
+@keyframes ring-pulse {
+	0% {
 		transform: scale(1);
+		opacity: 0.8;
 	}
-	50% {
-		opacity: 0.6;
-		transform: scale(1.15);
+	100% {
+		transform: scale(2);
+		opacity: 0;
 	}
 }
