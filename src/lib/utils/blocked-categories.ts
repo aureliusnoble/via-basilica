@@ -1,18 +1,17 @@
-// Category colors/emojis for share text only
+// Category emojis for share text
 export const BLOCKED_CATEGORY_EMOJIS: Record<string, string> = {
-	Religion: '🟣',
-	History: '🟫',
-	People: '🔴',
-	Philosophy: '🟡',
-	Culture: '🟠',
-	Education: '📘',
-	Society: '🔵',
-	Geography: '🟢',
-	Humanities: '📙',
-	Language: '📗',
-	Government: '⬛',
-	Law: '⬜',
-	// Additional categories from classification (not blockable but appear in paths)
+	Religion: '⛪',
+	History: '📜',
+	People: '👤',
+	Philosophy: '🤔',
+	Culture: '🎭',
+	Education: '🎓',
+	Society: '👥',
+	Geography: '🌍',
+	Humanities: '📚',
+	Language: '🗣️',
+	Government: '🏢',
+	Law: '⚖️',
 	Science: '🧬',
 	Arts: '🎨',
 	Sports: '🏅',
@@ -21,7 +20,7 @@ export const BLOCKED_CATEGORY_EMOJIS: Record<string, string> = {
 	Military: '⚔️',
 	Economics: '💰',
 	Basil: '☦️',
-	Other: '⬜'
+	Other: '❓'
 };
 
 // CSS background colors for category bubbles
