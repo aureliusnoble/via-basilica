@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { X, HelpCircle } from 'lucide-svelte';
+	import { base } from '$app/paths';
 	import Badge from '$lib/components/ui/Badge.svelte';
 	import PowerupIcon from '$lib/components/ui/PowerupIcon.svelte';
 	import { setShowBiographyModal } from '$lib/state/ui.svelte.js';
@@ -21,7 +22,7 @@
 		powerupSlots,
 		activePowerup,
 		onActivatePowerup,
-		backHref = '/play'
+		backHref = '/'
 	}: Props = $props();
 
 	function getPowerupInfo(id: string | null) {
@@ -34,7 +35,7 @@
 	<div class="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
 		<!-- Back button -->
 		<a
-			href={backHref}
+			href="{base}{backHref}"
 			class="p-2 -ml-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors touch-target"
 			aria-label="Exit game"
 		>

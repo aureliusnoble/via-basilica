@@ -24,7 +24,7 @@ enabled = true
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/auth/callback", "https://aureliusnoble.github.io/auth/callback"]
+additional_redirect_urls = ["http://localhost:5173/auth/callback", "http://localhost:5173/via-basilica/auth/callback", "https://aureliusnoble.github.io/via-basilica/auth/callback"]
 jwt_expiry = 3600
 enable_signup = true
 

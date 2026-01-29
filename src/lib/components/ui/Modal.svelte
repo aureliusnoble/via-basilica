@@ -37,7 +37,7 @@
 	}
 
 	function handleKeydown(e: KeyboardEvent) {
-		if (e.key === 'Escape' && closeable) {
+		if (e.key === 'Escape' && open && closeable) {
 			handleClose();
 		}
 	}

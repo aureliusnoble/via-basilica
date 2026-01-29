@@ -210,8 +210,8 @@
 			</Card>
 
 			<div class="space-y-3">
-				<Button href="/leaderboard" class="w-full">View Leaderboard</Button>
-				<Button href="/" variant="secondary" class="w-full">Back to Home</Button>
+				<Button href="{base}/leaderboard" class="w-full">View Leaderboard</Button>
+				<Button href="{base}/" variant="secondary" class="w-full">Back to Home</Button>
 			</div>
 		</div>
 	</main>
@@ -251,7 +251,7 @@
 	<main class="max-w-lg mx-auto px-4 py-6">
 		<div class="text-center py-12">
 			<p class="text-text-dark-muted mb-4">Something went wrong</p>
-			<Button href="/" variant="secondary">Back to Play</Button>
+			<Button href="{base}/" variant="secondary">Back to Play</Button>
 		</div>
 	</main>
 {/if}

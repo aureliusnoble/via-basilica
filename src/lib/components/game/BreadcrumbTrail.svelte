@@ -9,6 +9,10 @@
 
 	let { path, currentArticle }: Props = $props();
 
+	// Only show the 3 most recent steps
+	let displayPath = $derived(path.slice(-3));
+	let hasHiddenSteps = $derived(path.length > 3);
+
 	function truncateTitle(title: string, maxLength: number = 20): string {
 		const display = title.replace(/_/g, ' ');
 		if (display.length <= maxLength) return display;
@@ -16,10 +20,17 @@
 	}
 </script>
 
-<div class="bg-bg-dark-secondary border-b border-bg-dark-tertiary">
+<div class="sticky top-14 z-20 bg-bg-dark-secondary border-b border-bg-dark-tertiary">
 	<div class="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-hide max-w-lg mx-auto">
-		{#each path as step, index}
-			{@const isStart = index === 0}
+		{#if hasHiddenSteps}
+			<div class="flex-shrink-0 px-2 py-1 text-sm text-text-dark-muted" title="Earlier steps hidden">
+				...
+			</div>
+			<ChevronRight size={16} class="text-text-dark-muted flex-shrink-0" />
+		{/if}
+
+		{#each displayPath as step, index}
+			{@const isStart = index === 0 && !hasHiddenSteps}
 			{@const isCurrent = step.article_title === currentArticle}
 			{@const isUndone = step.is_undone}
 
