@@ -11,6 +11,7 @@ function createUIState() {
 	let showBiographyModal = $state(false);
 	let darkMode = $state(true);
 	let isMobile = $state(false);
+	let initialized = false;
 
 	function applyTheme() {
 		if (!browser) return;
@@ -47,7 +48,8 @@ function createUIState() {
 		},
 
 		init() {
-			if (!browser) return;
+			if (!browser || initialized) return;
+			initialized = true;
 
 			// Check for mobile
 			isMobile = window.innerWidth < 768;

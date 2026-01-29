@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
+	import { base } from '$app/paths';
 	import { Dice5, Calendar, HelpCircle } from 'lucide-svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import Spinner from '$lib/components/ui/Spinner.svelte';
+	import Skeleton from '$lib/components/ui/Skeleton.svelte';
 	import ThemeToggle from '$lib/components/layout/ThemeToggle.svelte';
 	import { getAuthState } from '$lib/state/auth.svelte.js';
 	import { setShowBiographyModal } from '$lib/state/ui.svelte.js';
@@ -17,19 +18,42 @@
 
 	let challenge = $state<DailyChallenge | null>(null);
 	let todaysResult = $state<GameResult | null>(null);
-	let loading = $state(true);
+	let challengeLoading = $state(true);
+	let resultLoading = $state(false);
+
+	async function loadResult(userId: string) {
+		resultLoading = true;
+		try {
+			todaysResult = await getTodaysResult(userId);
+		} catch (error) {
+			console.error('Error loading result:', error);
+		} finally {
+			resultLoading = false;
+		}
+	}
 
 	onMount(async () => {
 		try {
+			// Load challenge (may be cached for instant load)
 			challenge = await getTodaysChallenge();
 
+			// Load result in parallel if user is already authenticated
 			if (auth.user && challenge) {
-				todaysResult = await getTodaysResult(auth.user.id);
+				loadResult(auth.user.id);
 			}
 		} catch (error) {
 			console.error('Error loading home data:', error);
 		} finally {
-			loading = false;
+			challengeLoading = false;
+		}
+	});
+
+	// React to auth state changes (for when user logs in after page load)
+	$effect(() => {
+		const user = auth.user;
+		const currentChallenge = untrack(() => challenge);
+		if (user && currentChallenge && !todaysResult && !resultLoading) {
+			loadResult(user.id);
 		}
 	});
 
@@ -51,7 +75,7 @@
 	<div class="text-center mb-8">
 		<div class="w-28 h-28 mx-auto mb-4 rounded-full overflow-hidden ring-4 ring-gold/30 shadow-lg">
 			<img
-				src="/basil.jpg"
+				src="{base}/basil.jpg"
 				alt="Basil the Great"
 				class="w-full h-full object-cover"
 			/>
@@ -103,9 +127,15 @@
 	<Card variant="elevated" class="mb-6 relative overflow-hidden">
 		<div class="absolute top-0 right-0 w-32 h-32 bg-gold/5 rounded-full -translate-y-1/2 translate-x-1/2"></div>
 
-		{#if loading}
-			<div class="flex items-center justify-center py-8">
-				<Spinner />
+		{#if challengeLoading}
+			<!-- Skeleton UI for instant perceived load -->
+			<div class="relative">
+				<div class="flex items-center justify-between mb-4">
+					<Skeleton width="120px" height="24px" rounded="full" />
+				</div>
+				<Skeleton width="180px" height="24px" class="mb-2" />
+				<Skeleton width="140px" height="20px" class="mb-4" />
+				<Skeleton width="100%" height="44px" rounded="lg" />
 			</div>
 		{:else if challenge}
 			<div class="relative">

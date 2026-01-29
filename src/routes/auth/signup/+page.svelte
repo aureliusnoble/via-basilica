@@ -53,9 +53,7 @@
 	}
 
 	const oauthProviders: { id: AuthProvider; name: string; icon: string; color: string }[] = [
-		{ id: 'google', name: 'Google', icon: 'G', color: 'bg-white text-gray-800' },
-		{ id: 'github', name: 'GitHub', icon: '🐙', color: 'bg-gray-800 text-white' },
-		{ id: 'discord', name: 'Discord', icon: '💬', color: 'bg-indigo-600 text-white' }
+		{ id: 'google', name: 'Google', icon: 'G', color: 'bg-white text-gray-800' }
 	];
 </script>
 

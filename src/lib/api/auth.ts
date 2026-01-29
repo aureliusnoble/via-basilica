@@ -1,7 +1,7 @@
 import { getSupabase } from './supabase.js';
 import type { User, Session, Provider } from '@supabase/supabase-js';
 
-export type AuthProvider = 'google' | 'apple' | 'github' | 'discord';
+export type AuthProvider = 'google' | 'apple';
 
 export interface AuthResult {
 	user: User | null;
@@ -42,10 +42,14 @@ export async function signIn(email: string, password: string): Promise<AuthResul
 export async function signInWithOAuth(provider: AuthProvider): Promise<{ error: Error | null }> {
 	const supabase = getSupabase();
 
+	// Get the base path from the current URL (handles both local dev and deployed paths)
+	const basePath = import.meta.env.BASE_URL || '';
+	const redirectUrl = `${window.location.origin}${basePath}auth/callback`;
+
 	const { error } = await supabase.auth.signInWithOAuth({
 		provider: provider as Provider,
 		options: {
-			redirectTo: `${window.location.origin}/auth/callback`
+			redirectTo: redirectUrl
 		}
 	});
 
@@ -67,8 +71,11 @@ export async function signOut(): Promise<{ error: Error | null }> {
 export async function resetPassword(email: string): Promise<{ error: Error | null }> {
 	const supabase = getSupabase();
 
+	const basePath = import.meta.env.BASE_URL || '';
+	const redirectUrl = `${window.location.origin}${basePath}auth/callback?type=recovery`;
+
 	const { error } = await supabase.auth.resetPasswordForEmail(email, {
-		redirectTo: `${window.location.origin}/auth/callback?type=recovery`
+		redirectTo: redirectUrl
 	});
 
 	return {

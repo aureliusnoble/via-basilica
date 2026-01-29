@@ -9,6 +9,15 @@
 		<link rel="manifest" href="%sveltekit.assets%/manifest.json" />
 		<link rel="apple-touch-icon" href="%sveltekit.assets%/icons/icon-192.svg" />
 		<title>Via Basilica</title>
+		<script>
+			(function() {
+				var theme = localStorage.getItem('via_basilica_theme');
+				var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+				var isDark = theme ? theme === 'dark' : prefersDark;
+				document.documentElement.classList.toggle('dark', isDark);
+				document.documentElement.classList.toggle('light', !isDark);
+			})();
+		</script>
 		%sveltekit.head%
 	</head>
 	<body data-sveltekit-preload-data="hover">
