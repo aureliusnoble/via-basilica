@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { tick } from 'svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
 	import { checkBlockedLinks } from '$lib/api/blocked-categories.js';
@@ -64,6 +65,8 @@
 			}
 
 			// If we have blocked categories, check links in background and apply styles via DOM
+			// Wait for Svelte to render the HTML to the DOM before querying it
+			await tick();
 			console.log('[WikiArticleView] Article loaded. blockedCategories:', blockedCategories, 'containerRef:', !!containerRef);
 			if (blockedCategories.length > 0 && containerRef) {
 				applyBlockedStylesAsync(title);
