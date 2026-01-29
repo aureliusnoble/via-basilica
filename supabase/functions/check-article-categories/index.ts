@@ -190,9 +190,38 @@ for (const [topLevel, wikiCategories] of Object.entries(TOP_LEVEL_CATEGORIES)) {
 const categoryCache: Record<string, string | null> = {};
 
 // Check if a category name matches one of our top-level categories
+// Uses both exact match and containment check (with word boundaries)
 function checkDirectMatch(categoryName: string): string | null {
 	const lowerName = categoryName.toLowerCase();
-	return CATEGORY_TO_TOP_LEVEL[lowerName] || null;
+
+	// First try exact match
+	if (CATEGORY_TO_TOP_LEVEL[lowerName]) {
+		return CATEGORY_TO_TOP_LEVEL[lowerName];
+	}
+
+	// Then check if the category contains any of our target categories
+	// Use word boundary matching to avoid false positives
+	for (const [topLevel, wikiCategories] of Object.entries(TOP_LEVEL_CATEGORIES)) {
+		for (const wikiCat of wikiCategories) {
+			const lowerCat = wikiCat.toLowerCase();
+			// Check if the category name contains this target as a word/phrase
+			// e.g., "Christian saints from the New Testament" contains "Christian saints"
+			if (lowerName.includes(lowerCat)) {
+				// Verify it's at a word boundary (not part of another word)
+				const index = lowerName.indexOf(lowerCat);
+				const beforeChar = index > 0 ? lowerName[index - 1] : ' ';
+				const afterChar = index + lowerCat.length < lowerName.length
+					? lowerName[index + lowerCat.length]
+					: ' ';
+				// Check if surrounded by non-alphanumeric chars (word boundaries)
+				if (!/[a-z0-9]/.test(beforeChar) && !/[a-z0-9]/.test(afterChar)) {
+					return topLevel;
+				}
+			}
+		}
+	}
+
+	return null;
 }
 
 // Fetch parent categories for a list of categories

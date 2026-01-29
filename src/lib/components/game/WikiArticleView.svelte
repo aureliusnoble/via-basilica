@@ -195,7 +195,7 @@
 			</button>
 		</div>
 	{:else}
-		<h1 class="text-2xl font-serif text-gold mb-4">{articleTitle.replace(/_/g, ' ')}</h1>
+		<h1 class="text-2xl font-serif text-text-dark font-semibold mb-4 border-b border-bg-dark-tertiary pb-2">{articleTitle.replace(/_/g, ' ')}</h1>
 		{@html content}
 	{/if}
 </div>
