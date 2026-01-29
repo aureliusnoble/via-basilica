@@ -124,13 +124,14 @@
 		<Spinner size="lg" />
 	</div>
 {:else if game.isPlaying}
-	<GameHeader
-		hops={game.hops}
-		{elapsedSeconds}
-		backHref="/"
-	/>
-
-	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
+	<div class="sticky top-0 z-30">
+		<GameHeader
+			hops={game.hops}
+			{elapsedSeconds}
+			backHref="/"
+		/>
+		<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
+	</div>
 
 	<WikiArticleView
 		articleTitle={game.currentArticle}

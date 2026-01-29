@@ -20,7 +20,7 @@
 	}: Props = $props();
 </script>
 
-<header class="sticky top-0 z-30 bg-bg-dark/95 backdrop-blur-sm border-b border-bg-dark-tertiary">
+<header class="bg-bg-dark/95 backdrop-blur-sm border-b border-bg-dark-tertiary">
 	<div class="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
 		<!-- Back button -->
 		<a

@@ -22,7 +22,7 @@
 	}
 </script>
 
-<div class="sticky top-14 z-20 bg-bg-dark-secondary border-b border-bg-dark-tertiary">
+<div class="bg-bg-dark-secondary border-b border-bg-dark-tertiary">
 	<div class="flex items-center gap-2 px-4 py-2 overflow-x-auto scrollbar-hide max-w-lg lg:max-w-4xl xl:max-w-5xl mx-auto">
 		{#if hasHiddenSteps}
 			<div class="flex-shrink-0 px-2 py-1 text-sm text-text-dark-muted" title="Earlier steps hidden">

@@ -221,13 +221,14 @@
 	</main>
 {:else if game.isPlaying && challenge}
 	<!-- Game in progress -->
-	<GameHeader
-		hops={game.hops}
-		{elapsedSeconds}
-		blockedCategories={challenge.blocked_categories || []}
-	/>
-
-	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
+	<div class="sticky top-0 z-30">
+		<GameHeader
+			hops={game.hops}
+			{elapsedSeconds}
+			blockedCategories={challenge.blocked_categories || []}
+		/>
+		<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
+	</div>
 
 	<WikiArticleView
 		articleTitle={game.currentArticle}
