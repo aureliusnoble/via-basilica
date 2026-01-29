@@ -30,6 +30,7 @@
 	let timerInterval = $state<ReturnType<typeof setInterval> | null>(null);
 	let startArticle = $state('');
 	let gameStartDate = $state(new Date());
+	let currentCategory = $state<string | null>(null);
 
 	onMount(async () => {
 		try {
@@ -129,12 +130,13 @@
 		backHref="/"
 	/>
 
-	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} />
+	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
 
 	<WikiArticleView
 		articleTitle={game.currentArticle}
 		onNavigate={handleNavigate}
 		onLoadingChange={handleLoadingChange}
+		onCategoryChange={(category) => currentCategory = category}
 	/>
 
 	<VictoryModal

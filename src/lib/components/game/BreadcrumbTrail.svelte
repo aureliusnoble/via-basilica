@@ -1,13 +1,15 @@
 <script lang="ts">
 	import { Footprints, ChevronRight } from 'lucide-svelte';
 	import type { PathStep } from '$lib/types/database.js';
+	import { BLOCKED_CATEGORY_BG_COLORS } from '$lib/utils/blocked-categories.js';
 
 	interface Props {
 		path: PathStep[];
 		currentArticle: string;
+		currentCategory?: string | null;
 	}
 
-	let { path, currentArticle }: Props = $props();
+	let { path, currentArticle, currentCategory = null }: Props = $props();
 
 	// Only show the 3 most recent steps
 	let displayPath = $derived(path.slice(-3));
@@ -53,6 +55,15 @@
 				{/if}
 			</div>
 		{/each}
+
+		<!-- Category badge for current article -->
+		{#if currentCategory}
+			<div class="flex-shrink-0 ml-auto pl-2">
+				<span class="text-xs px-2 py-1 rounded-full border whitespace-nowrap {BLOCKED_CATEGORY_BG_COLORS[currentCategory] || 'bg-bg-dark-tertiary text-text-dark-muted'}">
+					{currentCategory}
+				</span>
+			</div>
+		{/if}
 	</div>
 </div>
 

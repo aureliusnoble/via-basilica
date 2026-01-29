@@ -42,6 +42,7 @@
 	let playerRank = $state<number | null>(null);
 	let xpEarned = $state(0);
 	let previousXp = $state(0);
+	let currentCategory = $state<string | null>(null);
 
 	onMount(async () => {
 		try {
@@ -226,12 +227,13 @@
 		blockedCategories={challenge.blocked_categories || []}
 	/>
 
-	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} />
+	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
 
 	<WikiArticleView
 		articleTitle={game.currentArticle}
 		onNavigate={handleNavigate}
 		onLoadingChange={handleLoadingChange}
+		onCategoryChange={(category) => currentCategory = category}
 		blockedCategories={challenge.blocked_categories || []}
 	/>
 
