@@ -4,6 +4,7 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 // Import the pre-computed class mapping
 // This maps Wikidata class IDs (e.g., Q5) to our category names (e.g., "People")
+// Updated: Fixed empire/statute mappings
 import CLASS_MAPPING from './class-to-category.json' with { type: 'json' };
 
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
@@ -634,7 +635,7 @@ serve(async (req) => {
 		}
 
 		if (titles.length === 0 || blockedCategories.length === 0) {
-			return new Response(JSON.stringify({ blockedLinks: {} }), {
+			return new Response(JSON.stringify({ blockedLinks: {}, categories: {} }), {
 				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 			});
 		}
@@ -663,9 +664,17 @@ serve(async (req) => {
 			titlesToClassify = categoryCache.uncached;
 		}
 
-		// If all titles were cached, return immediately
+		// If all titles were cached, return immediately with categories
 		if (titlesToClassify.length === 0) {
-			return new Response(JSON.stringify({ blockedLinks }), {
+			// Build categories from cache
+			const categories: Record<string, string | null> = {};
+			if (supabase) {
+				const categoryCache = await checkCategoryCache(supabase, titles);
+				for (const [title, category] of Object.entries(categoryCache.cached)) {
+					categories[title] = category;
+				}
+			}
+			return new Response(JSON.stringify({ blockedLinks, categories }), {
 				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 			});
 		}
