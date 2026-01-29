@@ -13,7 +13,9 @@
 		startGame,
 		navigateTo,
 		endGame,
-		getGameDuration
+		getGameDuration,
+		pauseTimer,
+		resumeTimer
 	} from '$lib/state/game.svelte.js';
 	import { fetchRandomArticle, isTargetArticle } from '$lib/api/wikipedia.js';
 	import { toast } from 'svelte-sonner';
@@ -86,6 +88,14 @@
 		goto(`${base}/`);
 	}
 
+	function handleLoadingChange(isLoading: boolean) {
+		if (isLoading) {
+			pauseTimer();
+		} else {
+			resumeTimer();
+		}
+	}
+
 	async function handleNewGame() {
 		loading = true;
 		endGame();
@@ -124,6 +134,7 @@
 	<WikiArticleView
 		articleTitle={game.currentArticle}
 		onNavigate={handleNavigate}
+		onLoadingChange={handleLoadingChange}
 	/>
 
 	<VictoryModal

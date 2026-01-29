@@ -8,9 +8,10 @@
 		onNavigate: (title: string) => void;
 		previewMode?: boolean;
 		onPreviewClick?: (title: string) => void;
+		onLoadingChange?: (loading: boolean) => void;
 	}
 
-	let { articleTitle, onNavigate, previewMode = false, onPreviewClick }: Props = $props();
+	let { articleTitle, onNavigate, previewMode = false, onPreviewClick, onLoadingChange }: Props = $props();
 
 	let content = $state('');
 	let loading = $state(true);
@@ -24,6 +25,7 @@
 	async function loadArticle(title: string) {
 		loading = true;
 		error = null;
+		onLoadingChange?.(true);
 
 		try {
 			const article = await fetchArticleHtml(title);
@@ -37,6 +39,7 @@
 			error = err instanceof Error ? err.message : 'Failed to load article';
 		} finally {
 			loading = false;
+			onLoadingChange?.(false);
 		}
 	}
 

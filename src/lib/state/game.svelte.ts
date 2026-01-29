@@ -9,6 +9,10 @@ const STORAGE_KEY = 'via_basilica_game_state';
 // Game state using Svelte 5 runes
 let gameState = $state<GameState | null>(null);
 
+// Timer pause tracking (not persisted)
+let pausedTime = $state(0); // Total milliseconds spent paused
+let pauseStartTime = $state<number | null>(null); // When current pause started
+
 export function getGameState() {
 	return {
 		get state() {
@@ -37,6 +41,10 @@ export function startGame(
 	startArticle: string,
 	challengeId: number | null
 ) {
+	// Reset pause tracking
+	pausedTime = 0;
+	pauseStartTime = null;
+
 	gameState = {
 		mode,
 		challengeId,
@@ -122,7 +130,30 @@ export function endGame() {
 
 export function getGameDuration(): number {
 	if (!gameState) return 0;
-	return Math.floor((Date.now() - gameState.startedAt.getTime()) / 1000);
+
+	let totalElapsed = Date.now() - gameState.startedAt.getTime();
+
+	// Subtract time spent paused
+	let totalPaused = pausedTime;
+	if (pauseStartTime !== null) {
+		// Currently paused, add current pause duration
+		totalPaused += Date.now() - pauseStartTime;
+	}
+
+	return Math.floor((totalElapsed - totalPaused) / 1000);
+}
+
+export function pauseTimer() {
+	if (pauseStartTime === null) {
+		pauseStartTime = Date.now();
+	}
+}
+
+export function resumeTimer() {
+	if (pauseStartTime !== null) {
+		pausedTime += Date.now() - pauseStartTime;
+		pauseStartTime = null;
+	}
 }
 
 // Storage functions
@@ -164,6 +195,10 @@ export function loadFromStorage(): boolean {
 			clearStorage();
 			return false;
 		}
+
+		// Reset pause tracking for resumed games
+		pausedTime = 0;
+		pauseStartTime = null;
 
 		gameState = {
 			mode: data.mode,

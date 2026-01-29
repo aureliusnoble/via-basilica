@@ -17,7 +17,9 @@
 		navigateTo,
 		loadFromStorage,
 		endGame,
-		getGameDuration
+		getGameDuration,
+		pauseTimer,
+		resumeTimer
 	} from '$lib/state/game.svelte.js';
 	import { getTodaysChallenge } from '$lib/api/challenges.js';
 	import { getTodaysResult, completeGameResult, createGameResult, getUserDailyRank, awardXp } from '$lib/api/game-results.js';
@@ -167,6 +169,14 @@
 		endGame();
 		goto(`${base}/`);
 	}
+
+	function handleLoadingChange(isLoading: boolean) {
+		if (isLoading) {
+			pauseTimer();
+		} else {
+			resumeTimer();
+		}
+	}
 </script>
 
 <svelte:head>
@@ -220,6 +230,7 @@
 	<WikiArticleView
 		articleTitle={game.currentArticle}
 		onNavigate={handleNavigate}
+		onLoadingChange={handleLoadingChange}
 	/>
 
 	<VictoryModal
