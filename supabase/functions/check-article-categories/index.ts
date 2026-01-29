@@ -14,6 +14,12 @@ const WIKIDATA_BATCH_SIZE = 50;
 // Cache duration in days
 const CACHE_DURATION_DAYS = 30;
 
+// Max depth for P279 chain lookup
+const MAX_P279_DEPTH = 3;
+
+// Cache for P279 lookups (within a single request)
+const p279Cache: Record<string, string[]> = {};
+
 // Initialize Supabase client for caching
 function getSupabaseClient() {
 	const supabaseUrl = Deno.env.get('SUPABASE_URL');
@@ -75,6 +81,51 @@ async function fetchP31FromWikidata(
 		return results;
 	} catch (error) {
 		console.error('Error fetching from Wikidata:', error);
+		return {};
+	}
+}
+
+// Fetch P279 (subclass of) values for a batch of class IDs
+async function fetchP279FromWikidata(
+	classIds: string[]
+): Promise<Record<string, string[]>> {
+	if (classIds.length === 0) return {};
+
+	const params = new URLSearchParams({
+		action: 'wbgetentities',
+		ids: classIds.join('|'),
+		props: 'claims',
+		format: 'json',
+		origin: '*'
+	});
+
+	try {
+		const response = await fetch(`${WIKIDATA_API}?${params}`);
+		const data = await response.json();
+
+		const results: Record<string, string[]> = {};
+		const entities = data.entities || {};
+
+		for (const [id, entity] of Object.entries(entities)) {
+			if ((entity as { missing?: boolean }).missing) continue;
+
+			const typedEntity = entity as {
+				claims?: { P279?: Array<{ mainsnak?: { datavalue?: { value?: { id: string } } } }> };
+			};
+
+			// Extract P279 (subclass of) values
+			const claims = typedEntity.claims?.P279 || [];
+			const p279Values = claims
+				.map((c) => c?.mainsnak?.datavalue?.value?.id)
+				.filter((id): id is string => Boolean(id));
+
+			results[id] = p279Values;
+			p279Cache[id] = p279Values; // Cache within request
+		}
+
+		return results;
+	} catch (error) {
+		console.error('Error fetching P279 from Wikidata:', error);
 		return {};
 	}
 }
@@ -148,7 +199,8 @@ async function updateCache(
 }
 
 // Classify an article based on its P31 values using the pre-computed mapping
-function classifyArticle(
+// Returns the category if found in blockedCategories, null otherwise
+function classifyWithDirectLookup(
 	p31Values: string[],
 	blockedCategories: string[]
 ): string | null {
@@ -158,6 +210,115 @@ function classifyArticle(
 			return category;
 		}
 	}
+	return null;
+}
+
+// Get category for a class ID from our mapping (without checking blockedCategories)
+function getCategoryForClass(classId: string): string | null {
+	return (CLASS_MAPPING as Record<string, string>)[classId] || null;
+}
+
+// Traverse P279 chain to find a category for unknown classes
+async function classifyWithP279Chain(
+	unknownClassIds: string[],
+	blockedCategories: string[],
+	depth: number = 0
+): Promise<Record<string, string>> {
+	const results: Record<string, string> = {};
+
+	if (depth >= MAX_P279_DEPTH || unknownClassIds.length === 0) {
+		return results;
+	}
+
+	// Filter out classes we've already cached
+	const toFetch = unknownClassIds.filter(id => !p279Cache[id]);
+
+	// Fetch P279 values for unknown classes in batches
+	if (toFetch.length > 0) {
+		for (let i = 0; i < toFetch.length; i += WIKIDATA_BATCH_SIZE) {
+			const batch = toFetch.slice(i, i + WIKIDATA_BATCH_SIZE);
+			await fetchP279FromWikidata(batch);
+		}
+	}
+
+	// Check parent classes
+	const nextLevelUnknown: string[] = [];
+
+	for (const classId of unknownClassIds) {
+		const parentClasses = p279Cache[classId] || [];
+
+		for (const parentId of parentClasses) {
+			const category = getCategoryForClass(parentId);
+			if (category && blockedCategories.includes(category)) {
+				results[classId] = category;
+				break;
+			}
+		}
+
+		// If still not found, add parent classes to next level lookup
+		if (!results[classId]) {
+			for (const parentId of parentClasses) {
+				if (!getCategoryForClass(parentId) && !nextLevelUnknown.includes(parentId)) {
+					nextLevelUnknown.push(parentId);
+				}
+			}
+		}
+	}
+
+	// Recursively check next level
+	if (nextLevelUnknown.length > 0) {
+		const nextResults = await classifyWithP279Chain(
+			nextLevelUnknown,
+			blockedCategories,
+			depth + 1
+		);
+
+		// Map back to original classes
+		for (const classId of unknownClassIds) {
+			if (results[classId]) continue;
+
+			const parentClasses = p279Cache[classId] || [];
+			for (const parentId of parentClasses) {
+				if (nextResults[parentId]) {
+					results[classId] = nextResults[parentId];
+					break;
+				}
+			}
+		}
+	}
+
+	return results;
+}
+
+// Full classification: direct lookup + P279 chain for unknown classes
+async function classifyArticle(
+	p31Values: string[],
+	blockedCategories: string[]
+): Promise<string | null> {
+	// Step 1: Try direct lookup first (fast path)
+	const directResult = classifyWithDirectLookup(p31Values, blockedCategories);
+	if (directResult) {
+		return directResult;
+	}
+
+	// Step 2: Collect unknown classes (not in our mapping)
+	const unknownClasses = p31Values.filter(id => !getCategoryForClass(id));
+
+	if (unknownClasses.length === 0) {
+		// All classes are known but none match blocked categories
+		return null;
+	}
+
+	// Step 3: Try P279 chain lookup for unknown classes
+	const chainResults = await classifyWithP279Chain(unknownClasses, blockedCategories);
+
+	// Return first match
+	for (const classId of unknownClasses) {
+		if (chainResults[classId]) {
+			return chainResults[classId];
+		}
+	}
+
 	return null;
 }
 
@@ -218,11 +379,12 @@ serve(async (req) => {
 		}
 
 		// Step 4: Classify articles and identify blocked ones
+		// Use P279 chain lookup for unknown classes
 		const blockedLinks: Record<string, string | null> = {};
 
 		for (const title of titles) {
 			const p31Values = allP31Values[title] || allP31Values[title.replace(/ /g, '_')] || [];
-			const blockedCategory = classifyArticle(p31Values, blockedCategories);
+			const blockedCategory = await classifyArticle(p31Values, blockedCategories);
 			blockedLinks[title] = blockedCategory;
 		}
 

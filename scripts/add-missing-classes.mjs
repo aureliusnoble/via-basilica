@@ -12,6 +12,47 @@ const mappingPath = new URL('../src/lib/data/class-to-category.json', import.met
 const mapping = JSON.parse(readFileSync(mappingPath, 'utf8'));
 
 // Classes identified from analysis that need to be added
+// Round 3: Fix critical classification issues
+const ADDITIONAL_CLASSES_ROUND3 = {
+  // Religion - religious figures, deities, positions
+  'Q178885': 'Religion',    // deity, god, religious figure - JESUS
+  'Q20643955': 'Religion',  // religious leader
+  'Q4271324': 'Religion',   // mythological character
+  'Q18563360': 'Religion',  // mythological figure
+  'Q825': 'Religion',       // sacred text
+  'Q51625': 'Religion',     // prophet
+  'Q21070568': 'Religion',  // religious title
+  'Q3375731': 'Religion',   // central figure
+  'Q13002315': 'Religion',  // figure venerated in religion
+  'Q21114371': 'Religion',  // church position - POPE
+  'Q17279032': 'Religion',  // religious role
+  'Q599151': 'Religion',    // office held by a religious leader
+  'Q30461': 'Religion',     // pope (instance)
+  'Q36180': 'Religion',     // pope (class)
+  'Q42603': 'Religion',     // priest
+  'Q250867': 'Religion',    // Catholic priest
+  'Q191808': 'Religion',    // bishop
+  'Q49476': 'Religion',     // archbishop
+  'Q211423': 'Religion',    // patriarch
+  'Q1144278': 'Religion',   // cardinal
+  'Q28640': 'Religion',     // religious profession (if religious)
+  'Q102456': 'Religion',    // angel
+  'Q178561': 'Religion',    // messiah
+  'Q3238275': 'Religion',   // religious identity
+  'Q1539016': 'Religion',   // religious community
+
+  // History - empires, historical states (override Geography)
+  // Note: We'll mark these as History, which takes precedence
+  'Q164950': 'History',     // revolution
+  'Q8016240': 'History',    // historical country
+  'Q3024240': 'History',    // historical administrative territorial entity
+  'Q131401': 'History',     // sovereign state (historical)
+  'Q7275': 'History',       // state (historical context)
+  'Q12759805': 'History',   // historical state
+  'Q417175': 'History',     // caliphate
+  'Q15286389': 'History',   // dynastic historical country
+};
+
 // Round 2: More classes from second analysis pass
 const ADDITIONAL_CLASSES_ROUND2 = {
   // === GOVERNMENT/POLITICS (elections) ===
@@ -364,7 +405,16 @@ console.log(`Current mapping size: ${Object.keys(mapping).length} classes`);
 let added = 0;
 let alreadyExists = 0;
 
-// Add round 2 classes first
+// Add round 3 classes first (these override existing mappings for critical fixes)
+for (const [classId, category] of Object.entries(ADDITIONAL_CLASSES_ROUND3)) {
+  if (mapping[classId] && mapping[classId] !== category) {
+    console.log(`  Overriding ${classId}: ${mapping[classId]} -> ${category}`);
+  }
+  mapping[classId] = category; // Override even if exists
+  added++;
+}
+
+// Add round 2 classes
 for (const [classId, category] of Object.entries(ADDITIONAL_CLASSES_ROUND2)) {
   if (mapping[classId]) {
     alreadyExists++;
