@@ -63,9 +63,7 @@
 	<div class="bio-content space-y-8 -mt-2">
 		<!-- Hero Section -->
 		<section class="text-center py-4">
-			<div class="cross-glow mb-4 flex justify-center">
-				<Cross size={48} class="text-gold" />
-			</div>
+			<div class="cross-glow text-6xl mb-4 text-gold">&#x2628;</div>
 			<h1 class="text-3xl font-serif text-gold mb-2">Basil the Great</h1>
 			<p class="text-text-dark-muted font-serif">c. 330 – 379 AD</p>
 			<p class="text-sm text-text-dark-muted mt-1">Bishop of Caesarea • Doctor of the Church</p>

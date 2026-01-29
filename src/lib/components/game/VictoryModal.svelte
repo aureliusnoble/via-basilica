@@ -2,7 +2,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import { MapPin, Circle, MoreHorizontal, Ban, Cross } from 'lucide-svelte';
+	import { MapPin, Circle, MoreHorizontal } from 'lucide-svelte';
 	import type { PathStep } from '$lib/types/database.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { shareResult } from '$lib/utils/share.js';
@@ -120,7 +120,7 @@
 		<!-- Victory animation -->
 		<div class="mb-6">
 			<div class="w-24 h-24 mx-auto mb-4 rounded-full bg-gradient-to-br from-gold to-gold-dark flex items-center justify-center animate-bounce">
-				<Cross size={48} class="text-bg-dark" />
+				<span class="text-bg-dark text-5xl">&#x2628;</span>
 			</div>
 			<h2 class="text-2xl font-serif text-gold">Victory!</h2>
 			<p class="text-text-dark-muted">You reached Basil the Great</p>
@@ -141,10 +141,7 @@
 		<!-- Blocked categories (if any) -->
 		{#if blockedCategories.length > 0}
 			<div class="mb-6">
-				<div class="flex items-center justify-center gap-2 text-sm text-text-dark-muted mb-2">
-					<Ban size={14} class="text-error" />
-					<span>Blocked Categories</span>
-				</div>
+				<p class="text-sm text-text-dark-muted mb-2">Blocked Categories</p>
 				<div class="flex flex-wrap justify-center gap-1.5">
 					{#each blockedCategories as category}
 						<span
@@ -189,7 +186,7 @@
 							</div>
 						{:else if step.type === 'target'}
 							<div class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gold">
-								<Cross size={16} />
+								<span class="text-sm">&#x2628;</span>
 							</div>
 						{:else}
 							<div class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-text-dark-muted">

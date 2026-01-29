@@ -3,123 +3,304 @@ import { corsHeaders } from '../_shared/cors.ts';
 
 const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
 
-// Category keywords for mapping Wikipedia categories to top-level categories
-const CATEGORY_KEYWORDS: Record<string, string[]> = {
+// Maximum depth to traverse up the category tree
+const MAX_CATEGORY_DEPTH = 6;
+
+// Our top-level categories mapped to Wikipedia category names
+// These are the actual Wikipedia categories we'll look for in the tree
+// More specific categories are listed to catch matches earlier in traversal
+const TOP_LEVEL_CATEGORIES: Record<string, string[]> = {
 	Religion: [
-		'church',
-		'saint',
-		'bishop',
-		'christian',
-		'orthodox',
-		'catholic',
-		'theology',
-		'priest',
-		'muslim',
-		'buddhist',
-		'jewish',
-		'religion',
-		'religious',
-		'monastery',
-		'pope',
-		'god',
-		'jesus',
-		'bible'
+		'Religion',
+		'Theology',
+		'Religious belief and doctrine',
+		'Spirituality',
+		'Deities',
+		'Religious faiths, traditions, and movements',
+		'Christianity',
+		'Islam',
+		'Buddhism',
+		'Hinduism',
+		'Judaism',
+		'Saints',
+		'Popes',
+		'Religious leaders',
+		// More specific categories to catch earlier
+		'Christian saints',
+		'Christian martyrs',
+		'Christians',
+		'Early Christianity',
+		'History of Christianity',
+		'Christian denominations',
+		'Catholic Church',
+		'Eastern Orthodox Church',
+		'Protestantism',
+		'Religious texts',
+		'Bible',
+		'Quran',
+		'Religious buildings',
+		'Churches',
+		'Mosques',
+		'Temples',
+		'Monasteries',
+		'Clergy',
+		'Bishops',
+		'Priests',
+		'Monks'
 	],
 	History: [
-		'empire',
-		'ancient',
-		'war',
-		'century',
-		'dynasty',
-		'medieval',
-		'kingdom',
-		'roman',
-		'byzantine',
-		'battle',
-		'civilization',
-		'history',
-		'historical'
+		'History',
+		'History by period',
+		'History by region',
+		'Historical events',
+		'Ancient history',
+		'Medieval history',
+		'Modern history',
+		'Military history',
+		'Wars',
+		'Empires',
+		'Dynasties',
+		'Battles',
+		'Revolutions',
+		'Historical eras'
 	],
 	People: [
-		'born',
-		'died',
-		'people',
-		'person',
-		'living',
-		'deaths',
-		'births',
-		'politician',
-		'writer',
-		'artist',
-		'scientist'
+		'People',
+		'Living people',
+		'Births',
+		'Deaths',
+		'People by occupation',
+		'People by nationality'
 	],
-	Philosophy: ['philosophy', 'philosopher', 'epistemology', 'metaphysics', 'ethics', 'logic'],
+	Philosophy: [
+		'Philosophy',
+		'Philosophical theories',
+		'Philosophical concepts',
+		'Philosophers',
+		'Ethics',
+		'Logic',
+		'Metaphysics',
+		'Epistemology',
+		'Philosophy by topic'
+	],
 	Culture: [
-		'culture',
-		'cultural',
-		'tradition',
-		'customs',
-		'festival',
-		'ceremony',
-		'folklore',
-		'mythology'
+		'Culture',
+		'Cultural heritage',
+		'Traditions',
+		'Folklore',
+		'Mythology',
+		'Customs',
+		'Festivals',
+		'Cultural events',
+		'Myths',
+		'Legends'
 	],
 	Education: [
-		'university',
-		'school',
-		'college',
-		'education',
-		'academic',
-		'student',
-		'professor',
-		'alumni'
+		'Education',
+		'Educational institutions',
+		'Universities and colleges',
+		'Schools',
+		'Academia',
+		'Academic disciplines',
+		'Universities',
+		'Colleges'
 	],
-	Society: ['society', 'social', 'community', 'organization', 'movement', 'group'],
+	Society: [
+		'Society',
+		'Social groups',
+		'Organizations',
+		'Social movements',
+		'Communities',
+		'Social institutions'
+	],
 	Geography: [
-		'city',
-		'country',
-		'river',
-		'region',
-		'mountain',
-		'island',
-		'capital',
-		'province',
-		'ocean',
-		'sea',
-		'lake',
-		'geography'
+		'Geography',
+		'Countries',
+		'Cities',
+		'Capitals',
+		'Continents',
+		'Regions',
+		'Rivers',
+		'Mountains',
+		'Islands',
+		'Oceans',
+		'Seas',
+		'Lakes',
+		'Places',
+		'Populated places',
+		'Countries by continent',
+		'Cities by country',
+		'Landforms',
+		'Bodies of water'
 	],
-	Humanities: ['humanities', 'arts', 'literature', 'linguistics'],
-	Language: ['language', 'linguistic', 'grammar', 'vocabulary', 'dialect', 'writing'],
+	Humanities: [
+		'Humanities',
+		'Arts',
+		'Literature',
+		'Linguistics',
+		'Visual arts',
+		'Performing arts',
+		'Music',
+		'Theatre',
+		'Dance',
+		'Film'
+	],
+	Language: [
+		'Language',
+		'Languages',
+		'Linguistics',
+		'Grammar',
+		'Writing systems',
+		'Languages by family'
+	],
 	Government: [
-		'government',
-		'politics',
-		'political',
-		'ministry',
-		'parliament',
-		'congress',
-		'democracy',
-		'election'
+		'Government',
+		'Politics',
+		'Political systems',
+		'Heads of state',
+		'Politicians',
+		'Elections',
+		'Parliaments',
+		'Democracy',
+		'Heads of government',
+		'Political parties'
 	],
-	Law: ['law', 'legal', 'court', 'judge', 'attorney', 'legislation', 'constitution', 'crime']
+	Law: [
+		'Law',
+		'Legal concepts',
+		'Courts',
+		'Judges',
+		'Crime',
+		'Criminal law',
+		'Constitutional law',
+		'Legal systems',
+		'Lawyers'
+	]
 };
 
-// Map a specific Wikipedia category to a top-level category using keyword matching
-function mapToTopLevelCategory(categoryTitle: string): string | null {
-	const categoryLower = categoryTitle.toLowerCase();
+// Build a reverse lookup: Wikipedia category -> our top-level category
+const CATEGORY_TO_TOP_LEVEL: Record<string, string> = {};
+for (const [topLevel, wikiCategories] of Object.entries(TOP_LEVEL_CATEGORIES)) {
+	for (const wikiCat of wikiCategories) {
+		CATEGORY_TO_TOP_LEVEL[wikiCat.toLowerCase()] = topLevel;
+	}
+}
 
-	for (const [topLevel, keywords] of Object.entries(CATEGORY_KEYWORDS)) {
-		for (const keyword of keywords) {
-			if (categoryLower.includes(keyword)) {
-				return topLevel;
+// Cache for category -> top-level mappings (persists during request)
+const categoryCache: Record<string, string | null> = {};
+
+// Check if a category name matches one of our top-level categories
+function checkDirectMatch(categoryName: string): string | null {
+	const lowerName = categoryName.toLowerCase();
+	return CATEGORY_TO_TOP_LEVEL[lowerName] || null;
+}
+
+// Fetch parent categories for a list of categories
+async function fetchParentCategories(categoryNames: string[]): Promise<Record<string, string[]>> {
+	if (categoryNames.length === 0) return {};
+
+	const titles = categoryNames.map(name =>
+		name.startsWith('Category:') ? name : `Category:${name}`
+	);
+
+	const params = new URLSearchParams({
+		action: 'query',
+		prop: 'categories',
+		titles: titles.join('|'),
+		cllimit: '50',
+		clshow: '!hidden',
+		format: 'json'
+	});
+
+	const response = await fetch(`${WIKIPEDIA_API}?${params}`);
+	const data = await response.json();
+
+	const result: Record<string, string[]> = {};
+	const pages = data.query?.pages;
+	if (!pages) return result;
+
+	for (const pageId of Object.keys(pages)) {
+		const page = pages[pageId];
+		if (page.title && page.categories) {
+			const categoryName = page.title.replace('Category:', '');
+			result[categoryName] = page.categories.map(
+				(cat: { title: string }) => cat.title.replace('Category:', '')
+			);
+		}
+	}
+
+	return result;
+}
+
+// Traverse up the category tree using BFS to find the closest top-level category match
+async function findTopLevelCategory(categoryName: string): Promise<string | null> {
+	// Check cache first
+	if (categoryName in categoryCache) {
+		return categoryCache[categoryName];
+	}
+
+	// Check for direct match
+	const directMatch = checkDirectMatch(categoryName);
+	if (directMatch) {
+		categoryCache[categoryName] = directMatch;
+		return directMatch;
+	}
+
+	// BFS: queue of categories to check, with their depth
+	const queue: Array<{ name: string; depth: number }> = [{ name: categoryName, depth: 0 }];
+	const visited = new Set<string>([categoryName]);
+
+	while (queue.length > 0) {
+		// Process categories at the current depth level
+		const currentDepth = queue[0].depth;
+		const currentLevel: string[] = [];
+
+		// Gather all categories at this depth
+		while (queue.length > 0 && queue[0].depth === currentDepth) {
+			currentLevel.push(queue.shift()!.name);
+		}
+
+		// Stop if we've gone too deep
+		if (currentDepth >= MAX_CATEGORY_DEPTH) {
+			break;
+		}
+
+		// Fetch parent categories for all categories at this level (batch)
+		const parentsMap = await fetchParentCategories(currentLevel);
+
+		// Check all parents for direct matches first
+		for (const cat of currentLevel) {
+			const parents = parentsMap[cat] || [];
+			for (const parent of parents) {
+				const match = checkDirectMatch(parent);
+				if (match) {
+					// Found a match - cache it for the original category and return
+					categoryCache[categoryName] = match;
+					categoryCache[cat] = match;
+					categoryCache[parent] = match;
+					return match;
+				}
+			}
+		}
+
+		// No matches at this level - add all unvisited parents to the queue
+		for (const cat of currentLevel) {
+			const parents = parentsMap[cat] || [];
+			for (const parent of parents) {
+				if (!visited.has(parent)) {
+					visited.add(parent);
+					queue.push({ name: parent, depth: currentDepth + 1 });
+				}
 			}
 		}
 	}
 
+	// No match found
+	categoryCache[categoryName] = null;
 	return null;
 }
 
-// Fetch categories for multiple articles in batch (max 50 per request)
+// Fetch direct categories for multiple articles in batch (max 50 per request)
 async function fetchCategoriesForArticles(
 	titles: string[],
 	inputTitles: string[]
@@ -128,7 +309,7 @@ async function fetchCategoriesForArticles(
 		action: 'query',
 		prop: 'categories',
 		titles: titles.join('|'),
-		cllimit: '20',
+		cllimit: '50',
 		clshow: '!hidden',
 		format: 'json',
 		redirects: '1'
@@ -142,13 +323,12 @@ async function fetchCategoriesForArticles(
 	// Build a map from normalized titles to input titles
 	const normalizedToInput: Record<string, string> = {};
 	for (const title of inputTitles) {
-		// Wikipedia normalizes: first letter uppercase, underscores to spaces
 		const normalized = title.charAt(0).toUpperCase() + title.slice(1);
 		normalizedToInput[normalized] = title;
-		normalizedToInput[title] = title; // Also map exact match
+		normalizedToInput[title] = title;
 	}
 
-	// Handle redirects - map redirected titles back to original
+	// Handle redirects
 	const redirectMap: Record<string, string> = {};
 	if (data.query?.redirects) {
 		for (const redirect of data.query.redirects) {
@@ -173,7 +353,6 @@ async function fetchCategoriesForArticles(
 				(cat: { title: string }) => cat.title.replace('Category:', '')
 			) || [];
 
-			// Map back to original input title
 			let originalTitle = page.title;
 			if (redirectMap[page.title]) {
 				originalTitle = redirectMap[page.title];
@@ -183,7 +362,6 @@ async function fetchCategoriesForArticles(
 			}
 
 			result[originalTitle] = categories;
-			// Also store under Wikipedia's canonical title for fallback
 			if (originalTitle !== page.title) {
 				result[page.title] = categories;
 			}
@@ -193,18 +371,26 @@ async function fetchCategoriesForArticles(
 	return result;
 }
 
-// Check which articles belong to blocked categories
-function checkBlockedArticles(
+// Check which articles belong to blocked categories using tree traversal
+async function checkBlockedArticles(
 	articleCategories: Record<string, string[]>,
 	blockedCategories: string[]
-): Record<string, string | null> {
+): Promise<Record<string, string | null>> {
 	const result: Record<string, string | null> = {};
 
 	for (const [title, categories] of Object.entries(articleCategories)) {
 		let blockedCategory: string | null = null;
 
 		for (const cat of categories) {
-			const topLevel = mapToTopLevelCategory(cat);
+			// First check for direct match (fast path)
+			const directMatch = checkDirectMatch(cat);
+			if (directMatch && blockedCategories.includes(directMatch)) {
+				blockedCategory = directMatch;
+				break;
+			}
+
+			// Otherwise traverse up the tree
+			const topLevel = await findTopLevelCategory(cat);
 			if (topLevel && blockedCategories.includes(topLevel)) {
 				blockedCategory = topLevel;
 				break;
@@ -236,6 +422,9 @@ serve(async (req) => {
 			);
 		}
 
+		// Clear cache for new request
+		Object.keys(categoryCache).forEach(key => delete categoryCache[key]);
+
 		// Batch titles into groups of 50 (Wikipedia API limit)
 		const batches: string[][] = [];
 		for (let i = 0; i < titles.length; i += 50) {
@@ -249,8 +438,8 @@ serve(async (req) => {
 			Object.assign(allCategories, batchCategories);
 		}
 
-		// Check which articles are blocked
-		const blockedLinks = checkBlockedArticles(allCategories, blockedCategories);
+		// Check which articles are blocked (with tree traversal)
+		const blockedLinks = await checkBlockedArticles(allCategories, blockedCategories);
 
 		return new Response(JSON.stringify({ blockedLinks }), {
 			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
