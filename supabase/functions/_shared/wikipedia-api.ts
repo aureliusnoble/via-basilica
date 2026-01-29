@@ -88,3 +88,23 @@ export async function verifyLinkExists(fromTitle: string, toTitle: string): Prom
 	// Compare normalized titles (Wikipedia returns titles with spaces)
 	return links.some((link: { title: string }) => link.title === normalizedTo);
 }
+
+// Fetch backlinks (pages that link TO the given article)
+export async function fetchBacklinks(title: string, limit: number = 50): Promise<string[]> {
+	const normalizedTitle = title.replace(/_/g, ' ');
+
+	const params = new URLSearchParams({
+		action: 'query',
+		list: 'backlinks',
+		bltitle: normalizedTitle,
+		blnamespace: '0', // Main namespace only
+		bllimit: limit.toString(),
+		format: 'json'
+	});
+
+	const response = await fetch(`${WIKIPEDIA_API}?${params}`);
+	const data = await response.json();
+
+	const backlinks = data.query?.backlinks || [];
+	return backlinks.map((bl: { title: string }) => bl.title);
+}

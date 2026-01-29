@@ -1,7 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { corsHeaders } from '../_shared/cors.ts';
 import { getSupabaseAdmin } from '../_shared/supabase-client.ts';
-import { fetchRandomArticles, fetchArticleInfo } from '../_shared/wikipedia-api.ts';
+import { fetchRandomArticles, fetchArticleInfo, fetchBacklinks } from '../_shared/wikipedia-api.ts';
 
 // Categories that can be blocked during daily challenges
 const BLOCKABLE_CATEGORIES = [
@@ -19,10 +19,71 @@ const BLOCKABLE_CATEGORIES = [
 	'Law'
 ];
 
+// Target article
+const TARGET_ARTICLE = 'Basil_of_Caesarea';
+
+// Max attempts to find valid blocked categories
+const MAX_VALIDATION_ATTEMPTS = 10;
+
 function selectBlockedCategories(): string[] {
 	const count = Math.floor(Math.random() * 3) + 1; // 1-3 categories
 	const shuffled = [...BLOCKABLE_CATEGORIES].sort(() => Math.random() - 0.5);
 	return shuffled.slice(0, count);
+}
+
+// Validate that the game is winnable with the given blocked categories
+// At least one backlink to Basil the Great must not be blocked
+async function validateBlockedCategories(
+	blockedCategories: string[],
+	supabaseUrl: string
+): Promise<boolean> {
+	try {
+		// Get backlinks to target article (pages that link TO Basil the Great)
+		const backlinks = await fetchBacklinks(TARGET_ARTICLE, 50);
+
+		if (backlinks.length === 0) {
+			console.log('No backlinks found for target article');
+			return true; // Can't validate, assume OK
+		}
+
+		// Check which backlinks are blocked using our edge function
+		const checkUrl = `${supabaseUrl}/functions/v1/check-article-categories`;
+		const response = await fetch(checkUrl, {
+			method: 'POST',
+			headers: {
+				'Content-Type': 'application/json',
+				'Authorization': `Bearer ${Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')}`
+			},
+			body: JSON.stringify({
+				titles: backlinks,
+				blockedCategories
+			})
+		});
+
+		if (!response.ok) {
+			console.error('Failed to check backlink categories:', response.statusText);
+			return true; // Can't validate, assume OK
+		}
+
+		const { blockedLinks } = await response.json();
+
+		// Count how many backlinks are NOT blocked
+		let unblockedCount = 0;
+		for (const title of backlinks) {
+			const blocked = blockedLinks[title] || blockedLinks[title.replace(/ /g, '_')];
+			if (!blocked) {
+				unblockedCount++;
+			}
+		}
+
+		console.log(`Validation: ${unblockedCount}/${backlinks.length} backlinks are unblocked`);
+
+		// Need at least one unblocked path to the target
+		return unblockedCount > 0;
+	} catch (error) {
+		console.error('Error validating blocked categories:', error);
+		return true; // Can't validate, assume OK
+	}
 }
 
 serve(async (req) => {
@@ -97,7 +158,27 @@ serve(async (req) => {
 		}
 
 		// Select blocked categories for this challenge
-		const blockedCategories = selectBlockedCategories();
+		// Validate that the game is still winnable (at least one path to target exists)
+		let blockedCategories: string[] = [];
+		const supabaseUrl = Deno.env.get('SUPABASE_URL');
+
+		for (let attempt = 0; attempt < MAX_VALIDATION_ATTEMPTS; attempt++) {
+			blockedCategories = selectBlockedCategories();
+			console.log(`Attempt ${attempt + 1}: Testing blocked categories:`, blockedCategories);
+
+			if (!supabaseUrl) {
+				console.log('No Supabase URL, skipping validation');
+				break;
+			}
+
+			const isValid = await validateBlockedCategories(blockedCategories, supabaseUrl);
+			if (isValid) {
+				console.log('Blocked categories validated successfully');
+				break;
+			}
+
+			console.log('Invalid blocked categories (game would be impossible), retrying...');
+		}
 
 		// Insert the challenge
 		const { data, error } = await supabase
