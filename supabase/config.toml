@@ -51,5 +51,5 @@ secret = ""
 [functions.generate-daily-challenge]
 verify_jwt = false  # If called by pg_cron
 
-[functions.calculate-daily-points]
-verify_jwt = false  # If called by pg_cron
+[functions.verify-game-result]
+verify_jwt = false  # Called from client, uses admin for writes

@@ -64,11 +64,15 @@ export async function fetchArticleInfo(title: string): Promise<{
 }
 
 export async function verifyLinkExists(fromTitle: string, toTitle: string): Promise<boolean> {
+	// Normalize titles: Wikipedia API uses spaces, but we store with underscores
+	const normalizedFrom = fromTitle.replace(/_/g, ' ');
+	const normalizedTo = toTitle.replace(/_/g, ' ');
+
 	const params = new URLSearchParams({
 		action: 'query',
 		prop: 'links',
-		titles: fromTitle,
-		pltitles: toTitle,
+		titles: normalizedFrom,
+		pltitles: normalizedTo,
 		format: 'json'
 	});
 
@@ -81,5 +85,6 @@ export async function verifyLinkExists(fromTitle: string, toTitle: string): Prom
 	const pageId = Object.keys(pages)[0];
 	const links = pages[pageId]?.links || [];
 
-	return links.some((link: { title: string }) => link.title === toTitle);
+	// Compare normalized titles (Wikipedia returns titles with spaces)
+	return links.some((link: { title: string }) => link.title === normalizedTo);
 }
