@@ -18,6 +18,7 @@
 		startArticle: string;
 		pointsAwarded?: number;
 		xpEarned?: number;
+		previousXp?: number;
 		rank?: number | null;
 		userLevel?: number;
 		userTotalXp?: number;
@@ -33,6 +34,7 @@
 		startArticle,
 		pointsAwarded = 0,
 		xpEarned = 0,
+		previousXp = 0,
 		rank = null,
 		userLevel,
 		userTotalXp,
@@ -187,6 +189,7 @@
 		{#if userLevel && userTotalXp !== undefined}
 			{@const currentTitle = getLevelTitle(userLevel)}
 			{@const progress = getXpProgress(userTotalXp)}
+			{@const previousProgress = getXpProgress(previousXp)}
 			<div class="mb-6">
 				<div class="flex justify-between text-sm mb-2">
 					<span class="text-gold font-medium">{currentTitle}</span>
@@ -196,7 +199,7 @@
 					{#key open}
 						<div
 							class="h-full bg-gradient-to-r from-gold to-gold-dark animate-progress-fill"
-							style="--target-width: {progress.percentage}%"
+							style="--start-width: {previousProgress.percentage}%; --target-width: {progress.percentage}%"
 						></div>
 					{/key}
 				</div>
@@ -229,7 +232,7 @@
 <style>
 	@keyframes progress-fill {
 		from {
-			width: 0%;
+			width: var(--start-width, 0%);
 		}
 		to {
 			width: var(--target-width, 100%);
@@ -237,6 +240,7 @@
 	}
 
 	:global(.animate-progress-fill) {
-		animation: progress-fill 1s ease-out forwards;
+		animation: progress-fill 1s ease-out 0.5s forwards;
+		width: var(--start-width, 0%);
 	}
 </style>

@@ -11,20 +11,27 @@ export function generateShareText(
 	const seconds = durationSeconds % 60;
 	const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-	// Generate path as vertical list of article names
+	// Generate path as vertical list with icons
 	const pathList = path.map((step, i) => {
+		const title = step.article_title.replace(/_/g, ' ');
 		if (i === 0) {
-			return step.article_title;
+			return `📍 ${title}`;
 		}
-		return `→ ${step.article_title}`;
-	}).join('\n');
+		if (i === path.length - 1) {
+			return `☦️ ${title}`;
+		}
+		return `   ↓\n○ ${title}`;
+	}).join('\n   ↓\n');
 
-	return `Via Basilica #${challengeNumber}
-${hops} hops in ${timeStr}
+	return `╔═══════════════════════════════╗
+     ☦️  VIA BASILICA #${challengeNumber}
+╠═══════════════════════════════╣
+  ⏱️ ${timeStr}   •   👣 ${hops} hops
+╚═══════════════════════════════╝
 
 ${pathList}
 
-https://aureliusnoble.github.io/via-basilica/`;
+🔗 aureliusnoble.github.io/via-basilica`;
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {

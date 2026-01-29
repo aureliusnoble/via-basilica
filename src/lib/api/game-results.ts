@@ -166,6 +166,22 @@ export async function hasCompletedChallenge(
 	return (data?.length || 0) > 0;
 }
 
+export async function awardXp(userId: string, xpEarned: number): Promise<boolean> {
+	const supabase = getSupabase();
+
+	const { error } = await supabase.rpc('update_player_xp', {
+		p_user_id: userId,
+		p_xp_earned: xpEarned
+	});
+
+	if (error) {
+		console.error('Error awarding XP:', error);
+		return false;
+	}
+
+	return true;
+}
+
 export async function getUserDailyRank(
 	userId: string,
 	challengeId: number

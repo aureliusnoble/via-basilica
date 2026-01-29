@@ -20,7 +20,9 @@
 		getGameDuration
 	} from '$lib/state/game.svelte.js';
 	import { getTodaysChallenge } from '$lib/api/challenges.js';
-	import { getTodaysResult, completeGameResult, createGameResult, getUserDailyRank } from '$lib/api/game-results.js';
+	import { getTodaysResult, completeGameResult, createGameResult, getUserDailyRank, awardXp } from '$lib/api/game-results.js';
+	import { calculateXp } from '$lib/utils/xp-calculator.js';
+	import { refreshProfile } from '$lib/state/auth.svelte.js';
 	import { isTargetArticle } from '$lib/api/wikipedia.js';
 	import { toast } from 'svelte-sonner';
 	import type { DailyChallenge, GameResult } from '$lib/types/database.js';
@@ -36,6 +38,8 @@
 	let timerInterval = $state<ReturnType<typeof setInterval> | null>(null);
 	let gameResultId = $state<string | null>(null);
 	let playerRank = $state<number | null>(null);
+	let xpEarned = $state(0);
+	let previousXp = $state(0);
 
 	onMount(async () => {
 		try {
@@ -124,6 +128,9 @@
 
 		const finalDuration = getGameDuration();
 
+		// Store previous XP for animation
+		previousXp = auth.profile?.total_xp ?? 0;
+
 		// Submit result
 		if (gameResultId && game.state) {
 			try {
@@ -133,6 +140,16 @@
 					game.state.hops,
 					finalDuration
 				);
+
+				// Calculate and award XP immediately (based on hops)
+				if (auth.user) {
+					const xpBreakdown = calculateXp('daily', game.state.hops);
+					xpEarned = xpBreakdown.total;
+					await awardXp(auth.user.id, xpEarned);
+
+					// Refresh profile to get updated XP/level
+					await refreshProfile();
+				}
 
 				// Fetch player's rank on the leaderboard
 				if (auth.user && challenge) {
@@ -213,6 +230,8 @@
 		challengeNumber={challenge.id}
 		startArticle={challenge.start_article}
 		rank={playerRank}
+		{xpEarned}
+		{previousXp}
 		userLevel={auth.profile?.level}
 		userTotalXp={auth.profile?.total_xp}
 		onClose={handleVictoryClose}
