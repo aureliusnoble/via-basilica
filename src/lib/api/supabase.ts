@@ -1,12 +1,11 @@
-import { createBrowserClient } from '@supabase/ssr';
-import type { SupabaseClient } from '@supabase/supabase-js';
+import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { browser } from '$app/environment';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 let supabaseInstance: SupabaseClient | null = null;
 
 function createSupabaseClient(): SupabaseClient | null {
-	console.log('[Supabase] Creating client with @supabase/ssr...');
+	console.log('[Supabase] Creating client for data operations...');
 	console.log('[Supabase] URL configured:', !!PUBLIC_SUPABASE_URL);
 	console.log('[Supabase] Key configured:', !!PUBLIC_SUPABASE_ANON_KEY);
 
@@ -17,17 +16,16 @@ function createSupabaseClient(): SupabaseClient | null {
 		return null;
 	}
 	try {
-		// Use createBrowserClient from @supabase/ssr with implicit flow
-		// to avoid PKCE which may use eval() for code challenge generation
-		const client = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+		// Create client for data operations only (auth is handled separately via direct fetch)
+		// Disable auth features to avoid eval() usage that triggers CSP issues
+		const client = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
 			auth: {
-				flowType: 'implicit',
-				detectSessionInUrl: true,
-				persistSession: true,
-				autoRefreshToken: true
+				autoRefreshToken: false,
+				persistSession: false,
+				detectSessionInUrl: false
 			}
 		});
-		console.log('[Supabase] Client created successfully (implicit flow)');
+		console.log('[Supabase] Client created successfully (data only)');
 		return client;
 	} catch (error) {
 		console.error('[Supabase] Failed to create client:', error);
