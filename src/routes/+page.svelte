@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
 	import { base } from '$app/paths';
-	import { Dice5, Calendar, HelpCircle } from 'lucide-svelte';
+	import { Dice5, Calendar, HelpCircle, Share2 } from 'lucide-svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
@@ -12,6 +12,8 @@
 	import { getTodaysChallenge } from '$lib/api/challenges.js';
 	import { getTodaysResult } from '$lib/api/game-results.js';
 	import { getXpProgress, getLevelTitle } from '$lib/utils/constants.js';
+	import { shareResult } from '$lib/utils/share.js';
+	import { toast } from 'svelte-sonner';
 	import type { DailyChallenge, GameResult } from '$lib/types/database.js';
 
 	const auth = getAuthState();
@@ -20,6 +22,34 @@
 	let todaysResult = $state<GameResult | null>(null);
 	let challengeLoading = $state(true);
 	let resultLoading = $state(false);
+	let isSharing = $state(false);
+
+	async function handleShare() {
+		if (!todaysResult || !challenge) return;
+
+		isSharing = true;
+		try {
+			const success = await shareResult(
+				challenge.id,
+				todaysResult.hops,
+				todaysResult.duration_seconds,
+				challenge.start_article,
+				todaysResult.path,
+				challenge.challenge_date,
+				'daily',
+				challenge.blocked_categories || []
+			);
+
+			if (success) {
+				toast.success('Copied to clipboard!');
+			}
+		} catch (error) {
+			console.error('Error sharing:', error);
+			toast.error('Failed to share');
+		} finally {
+			isSharing = false;
+		}
+	}
 
 	async function loadResult(userId: string, challengeId: number) {
 		resultLoading = true;
@@ -169,9 +199,20 @@
 							{/if}
 						</div>
 					</div>
-					<Button href="/leaderboard" variant="secondary" class="w-full">
-						View Leaderboard
-					</Button>
+					<div class="flex gap-3">
+						<Button href="/leaderboard" variant="secondary" class="flex-1">
+							View Leaderboard
+						</Button>
+						<button
+							onclick={handleShare}
+							disabled={isSharing}
+							class="flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-gold/10 hover:bg-gold/20 text-gold border border-gold/30 transition-colors disabled:opacity-50"
+							aria-label="Share your result"
+						>
+							<Share2 size={18} />
+							<span class="sr-only sm:not-sr-only">Share</span>
+						</button>
+					</div>
 				{:else}
 					<Button href="/play/daily" class="w-full">
 						Start Today's Challenge
