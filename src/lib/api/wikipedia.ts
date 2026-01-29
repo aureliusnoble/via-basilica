@@ -72,6 +72,11 @@ function processWikipediaHtml(
 		doc.querySelectorAll(selector).forEach((el) => el.remove());
 	});
 
+	// Debug: count links before processing
+	const allLinks = doc.querySelectorAll('a');
+	const wikiLinks = doc.querySelectorAll('a[rel="mw:WikiLink"]');
+	console.log('[Wikipedia] Processing HTML. Total links:', allLinks.length, 'WikiLinks (rel=mw:WikiLink):', wikiLinks.length);
+
 	// Transform internal wiki links
 	doc.querySelectorAll('a[rel="mw:WikiLink"]').forEach((link) => {
 		const href = link.getAttribute('href');
@@ -118,6 +123,10 @@ function processWikipediaHtml(
 		}
 	});
 
+	// Debug: count game links after processing
+	const gameLinks = doc.querySelectorAll('a[data-wiki-link]');
+	console.log('[Wikipedia] After processing: game links with data-wiki-link:', gameLinks.length);
+
 	// Transform external links
 	doc.querySelectorAll('a[rel="mw:ExtLink"]').forEach((link) => {
 		link.setAttribute('target', '_blank');
@@ -154,6 +163,11 @@ function processWikipediaHtml(
 		FORBID_TAGS: ['script', 'iframe', 'object', 'embed'],
 		FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
 	});
+
+	// Debug: check if data-wiki-link survived sanitization
+	const sanitizedDoc = parser.parseFromString(sanitized, 'text/html');
+	const survivingGameLinks = sanitizedDoc.querySelectorAll('a[data-wiki-link]');
+	console.log('[Wikipedia] After DOMPurify: surviving game links:', survivingGameLinks.length);
 
 	return sanitized;
 }
