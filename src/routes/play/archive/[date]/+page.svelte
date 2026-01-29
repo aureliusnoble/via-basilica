@@ -72,6 +72,10 @@
 					return;
 				}
 			}
+		// Set gameResultId from existing incomplete result for resume
+		if (existingResult) {
+			gameResultId = existingResult.id;
+		}
 
 			// Try to resume from storage
 			const resumed = loadFromStorage();
