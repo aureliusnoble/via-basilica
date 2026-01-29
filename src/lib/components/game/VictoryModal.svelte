@@ -2,6 +2,7 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
+	import { MapPin, Circle, MoreHorizontal } from 'lucide-svelte';
 	import type { PathStep } from '$lib/types/database.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { shareResult } from '$lib/utils/share.js';
@@ -16,6 +17,7 @@
 		startArticle: string;
 		pointsAwarded?: number;
 		xpEarned?: number;
+		rank?: number | null;
 		onClose: () => void;
 	}
 
@@ -28,10 +30,38 @@
 		startArticle,
 		pointsAwarded = 0,
 		xpEarned = 0,
+		rank = null,
 		onClose
 	}: Props = $props();
 
+	function formatRank(n: number): string {
+		const suffixes = ['th', 'st', 'nd', 'rd'];
+		const v = n % 100;
+		return n + (suffixes[(v - 20) % 10] || suffixes[v] || suffixes[0]);
+	}
+
 	let sharing = $state(false);
+
+	type DisplayStep =
+		| { type: 'start' | 'step' | 'target'; article_title: string }
+		| { type: 'collapsed'; count: number };
+
+	let displaySteps: DisplayStep[] = $derived.by(() => {
+		if (path.length <= 5) {
+			return path.map((step, i) => ({
+				type: i === 0 ? 'start' : i === path.length - 1 ? 'target' : 'step',
+				article_title: step.article_title
+			})) as DisplayStep[];
+		}
+
+		return [
+			{ type: 'start', article_title: path[0].article_title },
+			{ type: 'step', article_title: path[1].article_title },
+			{ type: 'collapsed', count: path.length - 4 },
+			{ type: 'step', article_title: path[path.length - 2].article_title },
+			{ type: 'target', article_title: path[path.length - 1].article_title }
+		] as DisplayStep[];
+	});
 
 	async function handleShare() {
 		sharing = true;
@@ -88,24 +118,65 @@
 			</div>
 		{/if}
 
-		<!-- Path preview -->
+		<!-- Journey visualization -->
 		<div class="mb-6">
-			<p class="text-sm text-text-dark-muted mb-2">Your Path</p>
-			<div class="flex flex-wrap justify-center gap-1">
-				{#each path as step, index}
-					{@const isStart = index === 0}
-					{@const isEnd = index === path.length - 1}
-					<div
-						class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-medium
-							{isStart ? 'bg-success/20 text-success ring-2 ring-success' : ''}
-							{isEnd ? 'bg-gold ring-2 ring-gold text-bg-dark' : ''}
-							{!isStart && !isEnd ? 'bg-bg-dark-tertiary' : ''}"
-						title={step.article_title.replace(/_/g, ' ')}
-					>
-						{step.article_title.charAt(0).toUpperCase()}
+			{#if rank}
+				<p class="text-lg font-serif text-gold mb-1">{formatRank(rank)} Place</p>
+			{/if}
+			<p class="text-sm text-text-dark-muted mb-4">Your Journey</p>
+			<div class="flex flex-col items-start text-left max-w-xs mx-auto">
+				{#each displaySteps as step, index}
+					<div class="flex items-center gap-3 w-full">
+						<!-- Icon -->
+						{#if step.type === 'start'}
+							<div class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-success">
+								<MapPin size={20} />
+							</div>
+						{:else if step.type === 'collapsed'}
+							<div class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-text-dark-muted">
+								<MoreHorizontal size={16} />
+							</div>
+						{:else if step.type === 'target'}
+							<div class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-gold text-lg">
+								&#x2627;
+							</div>
+						{:else}
+							<div class="flex-shrink-0 w-6 h-6 flex items-center justify-center text-text-dark-muted">
+								<Circle size={10} fill="currentColor" />
+							</div>
+						{/if}
+
+						<!-- Article name or collapsed text -->
+						{#if step.type === 'collapsed'}
+							<span class="text-sm text-text-dark-muted italic">{step.count} more steps</span>
+						{:else}
+							<span
+								class="text-sm truncate
+									{step.type === 'start' ? 'text-success font-medium' : ''}
+									{step.type === 'target' ? 'text-gold font-medium' : ''}
+									{step.type === 'step' ? 'text-text-dark' : ''}"
+							>
+								{step.article_title.replace(/_/g, ' ')}
+							</span>
+						{/if}
 					</div>
+
+					<!-- Connector line (not after last item) -->
+					{#if index < displaySteps.length - 1}
+						<div class="ml-[11px] h-4 border-l-2 border-dashed border-bg-dark-tertiary"></div>
+					{/if}
 				{/each}
 			</div>
+		</div>
+
+		<!-- Progress bar -->
+		<div class="mb-6">
+			<div class="h-2 bg-bg-dark-tertiary rounded-full overflow-hidden">
+				{#key open}
+					<div class="h-full bg-gradient-to-r from-gold to-gold-dark animate-progress-fill"></div>
+				{/key}
+			</div>
+			<p class="text-xs text-text-dark-muted mt-1">100% Complete</p>
 		</div>
 
 		<!-- Actions -->
@@ -122,3 +193,18 @@
 		</div>
 	</div>
 </Modal>
+
+<style>
+	@keyframes progress-fill {
+		from {
+			width: 0%;
+		}
+		to {
+			width: 100%;
+		}
+	}
+
+	:global(.animate-progress-fill) {
+		animation: progress-fill 1s ease-out forwards;
+	}
+</style>

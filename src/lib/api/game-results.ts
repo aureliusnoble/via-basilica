@@ -166,3 +166,32 @@ export async function hasCompletedChallenge(
 
 	return (data?.length || 0) > 0;
 }
+
+export async function getUserDailyRank(
+	userId: string,
+	challengeId: number
+): Promise<number | null> {
+	const supabase = getSupabase();
+
+	// Get all verified results for this challenge, ordered by ranking criteria
+	const { data, error } = await supabase
+		.from('game_results')
+		.select('user_id, hops, duration_seconds')
+		.eq('mode', 'daily')
+		.eq('challenge_id', challengeId)
+		.eq('verified', true)
+		.not('completed_at', 'is', null)
+		.order('hops', { ascending: true })
+		.order('duration_seconds', { ascending: true });
+
+	if (error) {
+		console.error('Error fetching daily rank:', error);
+		return null;
+	}
+
+	if (!data) return null;
+
+	// Find user's position (1-indexed)
+	const rank = data.findIndex((row) => row.user_id === userId) + 1;
+	return rank > 0 ? rank : null;
+}

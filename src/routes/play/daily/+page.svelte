@@ -24,7 +24,7 @@
 	} from '$lib/state/game.svelte.js';
 	import { loadPlayerPowerups } from '$lib/state/player.svelte.js';
 	import { getTodaysChallenge } from '$lib/api/challenges.js';
-	import { getTodaysResult, completeGameResult, createGameResult } from '$lib/api/game-results.js';
+	import { getTodaysResult, completeGameResult, createGameResult, getUserDailyRank } from '$lib/api/game-results.js';
 	import { isTargetArticle } from '$lib/api/wikipedia.js';
 	import { toast } from 'svelte-sonner';
 	import type { DailyChallenge, GameResult } from '$lib/types/database.js';
@@ -40,6 +40,7 @@
 	let elapsedSeconds = $state(0);
 	let timerInterval = $state<ReturnType<typeof setInterval> | null>(null);
 	let gameResultId = $state<string | null>(null);
+	let playerRank = $state<number | null>(null);
 
 	onMount(async () => {
 		try {
@@ -147,6 +148,11 @@
 					game.state.powerupsUsed,
 					finalDuration
 				);
+
+				// Fetch player's rank on the leaderboard
+				if (auth.user && challenge) {
+					playerRank = await getUserDailyRank(auth.user.id, challenge.id);
+				}
 			} catch (error) {
 				console.error('Error completing game:', error);
 			}
@@ -248,6 +254,7 @@
 		duration={elapsedSeconds}
 		challengeNumber={challenge.id}
 		startArticle={challenge.start_article}
+		rank={playerRank}
 		onClose={handleVictoryClose}
 	/>
 {:else}
