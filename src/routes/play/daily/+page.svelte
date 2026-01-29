@@ -247,6 +247,8 @@
 			hops={game.hops}
 			{elapsedSeconds}
 			blockedCategories={challenge.blocked_categories || []}
+			canGoBack={game.canGoBack}
+			onGoBack={() => game.previousArticle && handleNavigate(game.previousArticle)}
 		/>
 		<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
 	</div>

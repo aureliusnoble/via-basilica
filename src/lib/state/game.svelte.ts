@@ -32,6 +32,18 @@ export function getGameState() {
 		},
 		get currentArticle() {
 			return gameState?.currentArticle || '';
+		},
+		get previousArticle() {
+			// Get the second-to-last non-undone step (to go back to)
+			if (!gameState || gameState.path.length < 2) return null;
+			const activeSteps = gameState.path.filter(s => !s.is_undone);
+			if (activeSteps.length < 2) return null;
+			return activeSteps[activeSteps.length - 2].article_title;
+		},
+		get canGoBack() {
+			if (!gameState || gameState.path.length < 2) return false;
+			const activeSteps = gameState.path.filter(s => !s.is_undone);
+			return activeSteps.length >= 2;
 		}
 	};
 }

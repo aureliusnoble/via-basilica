@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { X, HelpCircle } from 'lucide-svelte';
+	import { X, HelpCircle, Undo2 } from 'lucide-svelte';
 	import { base } from '$app/paths';
 	import { setShowHelpModal } from '$lib/state/ui.svelte.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
@@ -10,26 +10,42 @@
 		elapsedSeconds: number;
 		blockedCategories?: string[];
 		backHref?: string;
+		canGoBack?: boolean;
+		onGoBack?: () => void;
 	}
 
 	let {
 		hops,
 		elapsedSeconds,
 		blockedCategories = [],
-		backHref = '/'
+		backHref = '/',
+		canGoBack = false,
+		onGoBack
 	}: Props = $props();
 </script>
 
 <header class="bg-bg-dark/95 backdrop-blur-sm border-b border-bg-dark-tertiary">
 	<div class="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-		<!-- Back button -->
-		<a
-			href="{base}{backHref}"
-			class="p-2 -ml-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors touch-target"
-			aria-label="Exit game"
-		>
-			<X size={20} />
-		</a>
+		<!-- Left side: Exit and Go Back buttons -->
+		<div class="flex items-center gap-1">
+			<a
+				href="{base}{backHref}"
+				class="p-2 -ml-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors touch-target"
+				aria-label="Exit game"
+			>
+				<X size={20} />
+			</a>
+			{#if canGoBack && onGoBack}
+				<button
+					onclick={onGoBack}
+					class="p-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors flex items-center gap-1 text-sm text-text-dark-muted hover:text-text-dark"
+					aria-label="Go back to previous article"
+					title="Go back (counts as a step)"
+				>
+					<Undo2 size={18} />
+				</button>
+			{/if}
+		</div>
 
 		<!-- Stats -->
 		<div class="flex items-center gap-4">

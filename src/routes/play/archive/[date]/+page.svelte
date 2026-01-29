@@ -234,6 +234,8 @@
 			{elapsedSeconds}
 			blockedCategories={challenge.blocked_categories || []}
 			backHref="/play/archive"
+			canGoBack={game.canGoBack}
+			onGoBack={() => game.previousArticle && handleNavigate(game.previousArticle)}
 		/>
 		<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
 	</div>

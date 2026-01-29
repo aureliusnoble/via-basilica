@@ -129,6 +129,8 @@
 			hops={game.hops}
 			{elapsedSeconds}
 			backHref="/"
+			canGoBack={game.canGoBack}
+			onGoBack={() => game.previousArticle && handleNavigate(game.previousArticle)}
 		/>
 		<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} {currentCategory} />
 	</div>
