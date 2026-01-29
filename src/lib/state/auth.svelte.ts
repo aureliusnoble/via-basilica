@@ -1,7 +1,7 @@
 import { browser } from '$app/environment';
-import type { User, Session } from '@supabase/supabase-js';
 import type { Profile } from '$lib/types/database.js';
-import { getSupabase } from '$lib/api/supabase.js';
+import { getSupabaseSafe } from '$lib/api/supabase.js';
+import { getSession, onAuthStateChange, type User, type Session } from '$lib/api/auth.js';
 
 // Auth state using Svelte 5 runes
 let user = $state<User | null>(null);
@@ -38,39 +38,24 @@ export async function initAuth() {
 
 	console.log('[Auth] Starting auth initialization...');
 
-	let supabase;
 	try {
-		supabase = getSupabase();
-		console.log('[Auth] Supabase client obtained successfully');
-	} catch (error) {
-		console.warn('[Auth] Supabase not configured, running in anonymous mode:', error);
-		loading = false;
-		initialized = true;
-		return;
-	}
-
-	try {
-		// Get initial session
+		// Get initial session from our direct auth implementation
 		console.log('[Auth] Getting initial session...');
-		const { data, error: sessionError } = await supabase.auth.getSession();
+		const currentSession = await getSession();
 
-		if (sessionError) {
-			console.error('[Auth] Error getting session:', sessionError);
-		} else {
-			console.log('[Auth] Session retrieved:', data.session ? 'User logged in' : 'No session');
-		}
+		console.log('[Auth] Session retrieved:', currentSession ? 'User logged in' : 'No session');
 
-		session = data.session;
-		user = data.session?.user || null;
+		session = currentSession;
+		user = currentSession?.user || null;
 
 		if (user) {
 			console.log('[Auth] Fetching profile for user:', user.id);
 			await fetchProfile(user.id);
 		}
 
-		// Listen for auth changes
-		supabase.auth.onAuthStateChange(async (event, newSession) => {
-			console.log('[Auth] Auth state changed:', event);
+		// Listen for auth changes using our event system
+		onAuthStateChange(async (newSession) => {
+			console.log('[Auth] Auth state changed:', newSession ? 'logged in' : 'logged out');
 			session = newSession;
 			user = newSession?.user || null;
 
@@ -91,7 +76,11 @@ export async function initAuth() {
 }
 
 async function fetchProfile(userId: string) {
-	const supabase = getSupabase();
+	const supabase = getSupabaseSafe();
+	if (!supabase) {
+		console.warn('[Auth] Supabase client not available for profile fetch');
+		return;
+	}
 
 	const { data, error } = await supabase
 		.from('profiles')
