@@ -268,7 +268,21 @@ export async function fetchRandomArticle(): Promise<{ title: string; url: string
 	};
 }
 
+// All known titles/redirects for the target article
+const TARGET_ALIASES = [
+	'basil_of_caesarea',
+	'basil_the_great',
+	'saint_basil_the_great',
+	'st._basil_the_great',
+	'st_basil_the_great',
+	'saint_basil_of_caesarea',
+	'st._basil_of_caesarea',
+	'st_basil_of_caesarea',
+	'basil_of_cappadocia',
+	'saint_basil'
+];
+
 export function isTargetArticle(title: string): boolean {
-	const normalized = title.replace(/ /g, '_');
-	return normalized === TARGET_ARTICLE || normalized === 'Basil_the_Great';
+	const normalized = title.replace(/ /g, '_').toLowerCase();
+	return TARGET_ALIASES.includes(normalized);
 }
