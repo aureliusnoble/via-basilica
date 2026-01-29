@@ -3,6 +3,17 @@ import { formatDate, formatDuration } from './date-helpers.js';
 
 type Category = 'H' | 'R' | 'G' | 'S' | 'A' | 'P' | '*';
 
+// Colored squares for each category
+const CATEGORY_COLORS: Record<Category, string> = {
+	H: '🟫', // History - brown
+	R: '🟣', // Religion - purple
+	G: '🟢', // Geography - green
+	S: '🔵', // Science - blue
+	A: '🟡', // Art - yellow
+	P: '🔴', // Politics - red
+	'*': '⬜' // Other - white
+};
+
 const CATEGORY_KEYWORDS: Record<Category, string[]> = {
 	H: [
 		'empire',
@@ -133,16 +144,17 @@ export function generateShareText(
 
 	// Generate category chain from path (excluding start, it's shown explicitly)
 	const categories = path.slice(1).map((step) => detectCategory(step.article_title));
+	const categoryColors = categories.map((cat) => CATEGORY_COLORS[cat]);
 
-	// Format category chain (truncate if > 6 steps)
+	// Format category chain as colored boxes (truncate if > 8 steps)
 	let categoryChain: string;
-	if (categories.length <= 6) {
-		categoryChain = categories.join(' -> ');
+	if (categoryColors.length <= 8) {
+		categoryChain = categoryColors.join('');
 	} else {
-		// Show first 3, ..., last 2
-		const first = categories.slice(0, 3).join(' -> ');
-		const last = categories.slice(-2).join(' -> ');
-		categoryChain = `${first} -> ... -> ${last}`;
+		// Show first 4, ellipsis, last 3
+		const first = categoryColors.slice(0, 4).join('');
+		const last = categoryColors.slice(-3).join('');
+		categoryChain = `${first}...${last}`;
 	}
 
 	// Title based on mode
@@ -166,8 +178,9 @@ export function generateShareText(
 	return `${title}
 ${dateStr}
 
-${start} -> ${targetArticle}
-${categoryChain} (${hops} hops | ${timeStr})
+${start} → ${targetArticle}
+${categoryChain}
+${hops} hops | ${timeStr}
 
 ${shareUrl}`;
 }
