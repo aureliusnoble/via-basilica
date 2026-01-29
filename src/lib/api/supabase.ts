@@ -4,23 +4,32 @@ import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/publi
 
 let supabaseInstance: SupabaseClient | null = null;
 
-function createSupabaseClient(): SupabaseClient {
+function createSupabaseClient(): SupabaseClient | null {
 	if (!PUBLIC_SUPABASE_URL || !PUBLIC_SUPABASE_ANON_KEY) {
-		throw new Error('Supabase environment variables are not configured');
+		console.warn('Supabase environment variables are not configured');
+		return null;
 	}
-	return createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-		auth: {
-			persistSession: true,
-			autoRefreshToken: true
-		}
-	});
+	try {
+		return createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+			auth: {
+				persistSession: true,
+				autoRefreshToken: true
+			}
+		});
+	} catch (error) {
+		console.error('Failed to create Supabase client:', error);
+		return null;
+	}
 }
 
-export const supabase = browser ? createSupabaseClient() : null!;
+export const supabase = browser ? createSupabaseClient() : null;
 
-export function getSupabase() {
+export function getSupabase(): SupabaseClient {
 	if (!browser) {
 		throw new Error('Supabase client is only available in the browser');
+	}
+	if (!supabase) {
+		throw new Error('Supabase client is not configured');
 	}
 	return supabase;
 }
