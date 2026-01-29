@@ -3,8 +3,11 @@ import { supabase } from './supabase.js';
 
 // Helper to build redirect URL without double slashes
 function getRedirectUrl(path: string): string {
-	const basePath = (import.meta.env.BASE_URL || '').replace(/\/$/, '');
-	return `${window.location.origin}${basePath}${path}`;
+	const baseUrl = import.meta.env.BASE_URL;
+	const basePath = (baseUrl || '').replace(/\/$/, '');
+	const redirectUrl = `${window.location.origin}${basePath}${path}`;
+	console.log('[Auth] Building redirect URL:', { baseUrl, basePath, origin: window.location.origin, path, redirectUrl });
+	return redirectUrl;
 }
 
 // Re-export types from Supabase for convenience
