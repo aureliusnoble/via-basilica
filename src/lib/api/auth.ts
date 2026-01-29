@@ -98,6 +98,11 @@ export async function signOut(): Promise<{ error: Error | null }> {
 		return { error: new Error('Supabase not configured') };
 	}
 
+	// Clear app-specific localStorage data on logout
+	if (browser) {
+		localStorage.removeItem('via_basilica_game_state');
+	}
+
 	const { error } = await supabase.auth.signOut();
 	return { error: error ? new Error(error.message) : null };
 }

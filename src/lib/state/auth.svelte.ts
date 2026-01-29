@@ -63,6 +63,13 @@ export async function initAuth() {
 		// Listen for auth changes using SDK's built-in listener
 		supabase.auth.onAuthStateChange(async (event, newSession) => {
 			console.log('[Auth] Auth state changed:', event, newSession ? 'logged in' : 'logged out');
+
+			// Clear game state on login/logout to prevent stale data issues
+			if (event === 'SIGNED_IN' || event === 'SIGNED_OUT') {
+				localStorage.removeItem('via_basilica_game_state');
+				console.log('[Auth] Cleared game state on auth change');
+			}
+
 			session = newSession as Session | null;
 			user = (newSession?.user as User) || null;
 
