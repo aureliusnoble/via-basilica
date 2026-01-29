@@ -12,6 +12,33 @@ const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
 // Batch size for Wikidata API calls (max 50)
 const WIKIDATA_BATCH_SIZE = 50;
 
+// Target article and its aliases - these should NEVER be blocked
+const TARGET_ALIASES = new Set([
+	'basil_of_caesarea',
+	'basil the great',
+	'basil_the_great',
+	'saint_basil_the_great',
+	'st._basil_the_great',
+	'st_basil_the_great',
+	'saint_basil_of_caesarea',
+	'st._basil_of_caesarea',
+	'st_basil_of_caesarea',
+	'basil_of_cappadocia',
+	'saint_basil',
+	'basil of caesarea',
+	'saint basil the great',
+	'st. basil the great',
+	'saint basil of caesarea',
+	'st. basil of caesarea',
+	'basil of cappadocia',
+	'saint basil'
+]);
+
+function isTargetArticle(title: string): boolean {
+	return TARGET_ALIASES.has(title.toLowerCase().replace(/ /g, '_')) ||
+		TARGET_ALIASES.has(title.toLowerCase());
+}
+
 // Wikipedia category keywords that map to our categories
 // Used as fallback when P31 values are not available
 const CATEGORY_KEYWORDS: Record<string, string[]> = {
@@ -569,8 +596,11 @@ serve(async (req) => {
 			const categoryCache = await checkCategoryCache(supabase, titles);
 
 			// For cached articles, just check if their category is blocked
+			// IMPORTANT: Never block the target article (victory condition)
 			for (const [title, category] of Object.entries(categoryCache.cached)) {
-				if (category && blockedCategories.includes(category)) {
+				if (isTargetArticle(title)) {
+					blockedLinks[title] = null; // Never block target
+				} else if (category && blockedCategories.includes(category)) {
 					blockedLinks[title] = category;
 				} else {
 					blockedLinks[title] = null;
@@ -621,6 +651,12 @@ serve(async (req) => {
 		const titlesNeedingWikipediaFallback: string[] = [];
 
 		for (const title of titlesToClassify) {
+			// IMPORTANT: Never block the target article (victory condition)
+			if (isTargetArticle(title)) {
+				blockedLinks[title] = null;
+				continue;
+			}
+
 			const p31Values = allP31Values[title] || allP31Values[title.replace(/ /g, '_')] || [];
 
 			if (p31Values.length === 0) {
@@ -648,6 +684,12 @@ serve(async (req) => {
 				const wikiCategories = await fetchWikipediaCategories(batch);
 
 				for (const title of batch) {
+					// IMPORTANT: Never block the target article (victory condition)
+					if (isTargetArticle(title)) {
+						blockedLinks[title] = null;
+						continue;
+					}
+
 					const categories = wikiCategories[title] || wikiCategories[title.replace(/ /g, '_')] || [];
 					if (categories.length > 0) {
 						// Get the category for caching
