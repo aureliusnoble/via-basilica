@@ -1,7 +1,8 @@
 <script lang="ts">
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import { fetchArticleHtml, fetchRawArticleHtml, extractLinkTitles } from '$lib/api/wikipedia.js';
-	import { checkBlockedLinks, type BlockedLinksMap } from '$lib/api/blocked-categories.js';
+	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
+	import { checkBlockedLinks } from '$lib/api/blocked-categories.js';
+	import { BLOCKED_CATEGORY_LINK_COLORS } from '$lib/utils/blocked-categories.js';
 
 	interface Props {
 		articleTitle: string;
@@ -41,65 +42,82 @@
 		onLoadingChange?.(true);
 
 		try {
-			// If we have blocked categories, we need to do a two-step process:
-			// 1. Fetch raw HTML and extract link titles
-			// 2. Check which links are blocked
-			// 3. Re-process HTML with blocked links map
-			if (blockedCategories.length > 0) {
-				// Fetch raw HTML
-				const rawHtml = await fetchRawArticleHtml(title);
+			// Fetch and show article immediately
+			const article = await fetchArticleHtml(title);
 
-				// Only update if this is still the article we want
-				if (title !== currentlyLoadedTitle) return;
+			// Only update if this is still the article we want
+			if (title !== currentlyLoadedTitle) return;
 
-				// Extract link titles
-				const linkTitles = extractLinkTitles(rawHtml);
+			content = article.html;
+			loading = false;
+			onLoadingChange?.(false);
 
-				// Check blocked links in background (show article immediately)
-				const article = await fetchArticleHtml(title);
-				if (title !== currentlyLoadedTitle) return;
+			// Scroll to top
+			if (containerRef) {
+				containerRef.scrollTop = 0;
+			}
 
-				content = article.html;
-
-				// Scroll to top
-				if (containerRef) {
-					containerRef.scrollTop = 0;
-				}
-
-				// Now check blocked categories and re-process if needed
-				if (linkTitles.length > 0) {
-					const blockedLinksMap = await checkBlockedLinks(linkTitles, blockedCategories);
-
-					// Only update if still the same article and we have blocked links
-					if (title === currentlyLoadedTitle && Object.keys(blockedLinksMap).length > 0) {
-						// Re-fetch with blocked links map
-						const articleWithBlocked = await fetchArticleHtml(title, blockedLinksMap);
-						if (title === currentlyLoadedTitle) {
-							content = articleWithBlocked.html;
-						}
-					}
-				}
-			} else {
-				// No blocked categories - simple path
-				const article = await fetchArticleHtml(title);
-				// Only update if this is still the article we want
-				if (title === currentlyLoadedTitle) {
-					content = article.html;
-
-					// Scroll to top
-					if (containerRef) {
-						containerRef.scrollTop = 0;
-					}
-				}
+			// If we have blocked categories, check links in background and apply styles via DOM
+			if (blockedCategories.length > 0 && containerRef) {
+				applyBlockedStylesAsync(title);
 			}
 		} catch (err) {
 			if (title === currentlyLoadedTitle) {
 				error = err instanceof Error ? err.message : 'Failed to load article';
-			}
-		} finally {
-			if (title === currentlyLoadedTitle) {
 				loading = false;
 				onLoadingChange?.(false);
+			}
+		}
+	}
+
+	async function applyBlockedStylesAsync(title: string) {
+		if (!containerRef) return;
+
+		// Extract link titles from current DOM
+		const links = containerRef.querySelectorAll('a[data-wiki-link]');
+		const linkTitles: string[] = [];
+		const linkMap = new Map<string, HTMLElement[]>();
+
+		links.forEach((link) => {
+			const linkTitle = link.getAttribute('data-wiki-title');
+			if (linkTitle) {
+				const normalized = linkTitle.replace(/_/g, ' ');
+				if (!linkMap.has(normalized)) {
+					linkMap.set(normalized, []);
+					linkTitles.push(normalized);
+				}
+				linkMap.get(normalized)!.push(link as HTMLElement);
+			}
+		});
+
+		if (linkTitles.length === 0) return;
+
+		// Check which links are blocked
+		const blockedLinksMap = await checkBlockedLinks(linkTitles, blockedCategories);
+
+		// Only update if still the same article
+		if (title !== currentlyLoadedTitle || !containerRef) return;
+
+		// Apply styles to blocked links via DOM manipulation
+		for (const [linkTitle, blockedCategory] of Object.entries(blockedLinksMap)) {
+			if (!blockedCategory) continue;
+
+			const elements = linkMap.get(linkTitle) || linkMap.get(linkTitle.replace(/ /g, '_'));
+			if (!elements) continue;
+
+			for (const link of elements) {
+				// Remove game link attributes
+				link.removeAttribute('data-wiki-link');
+				link.removeAttribute('href');
+				link.classList.remove('wiki-game-link');
+
+				// Add blocked attributes and styles
+				link.setAttribute('data-blocked-category', blockedCategory);
+				link.classList.add('wiki-blocked-link');
+
+				// Apply inline background color
+				const bgColor = BLOCKED_CATEGORY_LINK_COLORS[blockedCategory] || 'rgba(239, 68, 68, 0.2)';
+				link.style.backgroundColor = bgColor;
 			}
 		}
 	}
@@ -111,7 +129,6 @@
 		const blockedLink = target.closest('a[data-blocked-category]');
 		if (blockedLink) {
 			e.preventDefault();
-			// Blocked link - do nothing
 			return;
 		}
 
@@ -135,7 +152,6 @@
 		if (e.key === 'Enter' || e.key === ' ') {
 			const target = e.target as HTMLElement;
 
-			// Check for blocked links first
 			if (target.matches('a[data-blocked-category]')) {
 				e.preventDefault();
 				return;

@@ -206,12 +206,12 @@ export function generateShareText(
 		categoryChain = `${first}...${last}`;
 	}
 
-	// Generate legend for unique categories that appeared in the journey
+	// Generate legend for unique categories that appeared in the journey (each on new line)
 	const uniqueCategories = [...new Set(categories)].filter((cat) => cat !== '*');
-	const legend =
+	const legendLines =
 		uniqueCategories.length > 0
-			? uniqueCategories.map((cat) => `${CATEGORY_COLORS[cat]}=${CATEGORY_NAMES[cat]}`).join(' ')
-			: '';
+			? uniqueCategories.map((cat) => `${CATEGORY_COLORS[cat]} ${CATEGORY_NAMES[cat]}`)
+			: [];
 
 	// Title based on mode
 	const title =
@@ -256,8 +256,10 @@ export function generateShareText(
 	lines.push(categoryChain);
 	lines.push(`${hops} hops | ${timeStr}`);
 
-	if (legend) {
-		lines.push(legend);
+	// Add legend (each category on new line)
+	if (legendLines.length > 0) {
+		lines.push('');
+		lines.push(...legendLines);
 	}
 
 	lines.push('');

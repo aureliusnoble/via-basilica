@@ -121,7 +121,8 @@ function mapToTopLevelCategory(categoryTitle: string): string | null {
 
 // Fetch categories for multiple articles in batch (max 50 per request)
 async function fetchCategoriesForArticles(
-	titles: string[]
+	titles: string[],
+	inputTitles: string[]
 ): Promise<Record<string, string[]>> {
 	const params = new URLSearchParams({
 		action: 'query',
@@ -129,7 +130,8 @@ async function fetchCategoriesForArticles(
 		titles: titles.join('|'),
 		cllimit: '20',
 		clshow: '!hidden',
-		format: 'json'
+		format: 'json',
+		redirects: '1'
 	});
 
 	const response = await fetch(`${WIKIPEDIA_API}?${params}`);
@@ -137,15 +139,54 @@ async function fetchCategoriesForArticles(
 
 	const result: Record<string, string[]> = {};
 
+	// Build a map from normalized titles to input titles
+	const normalizedToInput: Record<string, string> = {};
+	for (const title of inputTitles) {
+		// Wikipedia normalizes: first letter uppercase, underscores to spaces
+		const normalized = title.charAt(0).toUpperCase() + title.slice(1);
+		normalizedToInput[normalized] = title;
+		normalizedToInput[title] = title; // Also map exact match
+	}
+
+	// Handle redirects - map redirected titles back to original
+	const redirectMap: Record<string, string> = {};
+	if (data.query?.redirects) {
+		for (const redirect of data.query.redirects) {
+			redirectMap[redirect.to] = redirect.from;
+		}
+	}
+
+	// Handle normalized titles
+	if (data.query?.normalized) {
+		for (const norm of data.query.normalized) {
+			normalizedToInput[norm.to] = norm.from;
+		}
+	}
+
 	const pages = data.query?.pages;
 	if (!pages) return result;
 
 	for (const pageId of Object.keys(pages)) {
 		const page = pages[pageId];
-		if (page.title && page.categories) {
-			result[page.title] = page.categories.map(
+		if (page.title) {
+			const categories = page.categories?.map(
 				(cat: { title: string }) => cat.title.replace('Category:', '')
-			);
+			) || [];
+
+			// Map back to original input title
+			let originalTitle = page.title;
+			if (redirectMap[page.title]) {
+				originalTitle = redirectMap[page.title];
+			}
+			if (normalizedToInput[originalTitle]) {
+				originalTitle = normalizedToInput[originalTitle];
+			}
+
+			result[originalTitle] = categories;
+			// Also store under Wikipedia's canonical title for fallback
+			if (originalTitle !== page.title) {
+				result[page.title] = categories;
+			}
 		}
 	}
 
@@ -204,7 +245,7 @@ serve(async (req) => {
 		// Fetch categories for all batches
 		const allCategories: Record<string, string[]> = {};
 		for (const batch of batches) {
-			const batchCategories = await fetchCategoriesForArticles(batch);
+			const batchCategories = await fetchCategoriesForArticles(batch, batch);
 			Object.assign(allCategories, batchCategories);
 		}
 

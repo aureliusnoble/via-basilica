@@ -7,7 +7,7 @@
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { shareResult } from '$lib/utils/share.js';
 	import { getLevelTitle, getXpProgress, LEVEL_TITLES } from '$lib/utils/constants.js';
-	import { BLOCKED_CATEGORY_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
+	import { BLOCKED_CATEGORY_BG_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -147,9 +147,10 @@
 				</div>
 				<div class="flex flex-wrap justify-center gap-1.5">
 					{#each blockedCategories as category}
-						<span class="inline-flex items-center gap-1 px-2 py-1 bg-bg-dark-tertiary rounded text-xs">
-							<span>{BLOCKED_CATEGORY_COLORS[category] || '🚫'}</span>
-							<span>{BLOCKED_CATEGORY_NAMES[category] || category}</span>
+						<span
+							class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium border {BLOCKED_CATEGORY_BG_COLORS[category] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}"
+						>
+							{BLOCKED_CATEGORY_NAMES[category] || category}
 						</span>
 					{/each}
 				</div>

@@ -1,9 +1,9 @@
 <script lang="ts">
-	import { X, HelpCircle, Ban } from 'lucide-svelte';
+	import { X, HelpCircle } from 'lucide-svelte';
 	import { base } from '$app/paths';
-	import { setShowBiographyModal } from '$lib/state/ui.svelte.js';
+	import { setShowHelpModal } from '$lib/state/ui.svelte.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
-	import { BLOCKED_CATEGORY_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
+	import { BLOCKED_CATEGORY_BG_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
 
 	interface Props {
 		hops: number;
@@ -18,8 +18,6 @@
 		blockedCategories = [],
 		backHref = '/'
 	}: Props = $props();
-
-	let showBlockedTooltip = $state(false);
 </script>
 
 <header class="sticky top-0 z-30 bg-bg-dark/95 backdrop-blur-sm border-b border-bg-dark-tertiary">
@@ -45,47 +43,29 @@
 			</div>
 		</div>
 
-		<!-- Right side buttons -->
-		<div class="flex items-center gap-1">
-			<!-- Blocked categories indicator -->
-			{#if blockedCategories.length > 0}
-				<div class="relative">
-					<button
-						onclick={() => showBlockedTooltip = !showBlockedTooltip}
-						onblur={() => setTimeout(() => showBlockedTooltip = false, 150)}
-						class="p-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors flex items-center gap-1"
-						aria-label="Blocked categories"
-					>
-						<Ban size={16} class="text-error" />
-						<span class="text-xs text-error font-medium">{blockedCategories.length}</span>
-					</button>
-
-					<!-- Tooltip -->
-					{#if showBlockedTooltip}
-						<div class="absolute right-0 top-full mt-2 bg-bg-dark-secondary border border-bg-dark-tertiary rounded-lg p-3 shadow-lg min-w-48 z-50">
-							<p class="text-xs text-text-dark-muted mb-2">Blocked Categories</p>
-							<div class="flex flex-wrap gap-1.5">
-								{#each blockedCategories as category}
-									<span class="inline-flex items-center gap-1 px-2 py-1 bg-bg-dark-tertiary rounded text-xs">
-										<span>{BLOCKED_CATEGORY_COLORS[category] || '🚫'}</span>
-										<span>{BLOCKED_CATEGORY_NAMES[category] || category}</span>
-									</span>
-								{/each}
-							</div>
-							<p class="text-xs text-text-dark-muted mt-2">Links to these categories are disabled</p>
-						</div>
-					{/if}
-				</div>
-			{/if}
-
-			<!-- Help button -->
-			<button
-				onclick={() => setShowBiographyModal(true)}
-				class="p-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors"
-				aria-label="About Basil"
-			>
-				<HelpCircle size={20} class="text-gold" />
-			</button>
-		</div>
+		<!-- Help button -->
+		<button
+			onclick={() => setShowHelpModal(true)}
+			class="p-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors"
+			aria-label="Game help"
+		>
+			<HelpCircle size={20} class="text-gold" />
+		</button>
 	</div>
+
+	<!-- Blocked categories bar -->
+	{#if blockedCategories.length > 0}
+		<div class="px-4 pb-2 max-w-lg mx-auto">
+			<div class="flex items-center gap-2 flex-wrap">
+				<span class="text-xs text-text-dark-muted">Blocked:</span>
+				{#each blockedCategories as category}
+					<span
+						class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border {BLOCKED_CATEGORY_BG_COLORS[category] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}"
+					>
+						{BLOCKED_CATEGORY_NAMES[category] || category}
+					</span>
+				{/each}
+			</div>
+		</div>
+	{/if}
 </header>

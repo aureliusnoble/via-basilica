@@ -112,21 +112,18 @@ body {
 
 /* Blocked category links */
 .wiki-content .wiki-blocked-link {
-	color: #6b7280 !important;
+	color: #ef4444 !important;
+	font-weight: 700;
 	text-decoration: line-through !important;
+	text-decoration-color: #ef4444;
 	cursor: not-allowed;
-	opacity: 0.6;
-}
-
-.wiki-content .wiki-blocked-link::after {
-	content: '\1F6AB';
-	font-size: 0.7em;
-	margin-left: 2px;
-	vertical-align: super;
+	padding: 0.125rem 0.375rem;
+	border-radius: 0.25rem;
+	/* Background color is set inline based on category */
 }
 
 .wiki-content .wiki-blocked-link:hover {
-	color: #6b7280 !important;
+	color: #ef4444 !important;
 	text-decoration: line-through !important;
 }
 

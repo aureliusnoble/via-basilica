@@ -6,6 +6,7 @@
 	import WelcomeModal from '$lib/components/onboarding/WelcomeModal.svelte';
 	import DailyQuoteModal from '$lib/components/onboarding/DailyQuoteModal.svelte';
 	import BiographyModal from '$lib/components/onboarding/BiographyModal.svelte';
+	import HelpModal from '$lib/components/game/HelpModal.svelte';
 	import { initUI, getUIState } from '$lib/state/ui.svelte.js';
 	import { initAuth } from '$lib/state/auth.svelte.js';
 	import { Toaster } from 'svelte-sonner';
@@ -36,6 +37,7 @@
 <WelcomeModal />
 <DailyQuoteModal />
 <BiographyModal />
+<HelpModal />
 
 <!-- Toast notifications -->
 <Toaster

@@ -9,6 +9,7 @@ function createUIState() {
 	let showWelcomeModal = $state(false);
 	let showDailyQuoteModal = $state(false);
 	let showBiographyModal = $state(false);
+	let showHelpModal = $state(false);
 	let darkMode = $state(true);
 	let isMobile = $state(false);
 	let initialized = false;
@@ -42,6 +43,9 @@ function createUIState() {
 		},
 		get showBiographyModal() {
 			return showBiographyModal;
+		},
+		get showHelpModal() {
+			return showHelpModal;
 		},
 		get darkMode() {
 			return darkMode;
@@ -116,6 +120,10 @@ function createUIState() {
 			showBiographyModal = show;
 		},
 
+		setShowHelpModal(show: boolean) {
+			showHelpModal = show;
+		},
+
 		toggleDarkMode() {
 			darkMode = !darkMode;
 			if (browser) {
@@ -148,6 +156,10 @@ export function setShowDailyQuoteModal(show: boolean) {
 
 export function setShowBiographyModal(show: boolean) {
 	ui.setShowBiographyModal(show);
+}
+
+export function setShowHelpModal(show: boolean) {
+	ui.setShowHelpModal(show);
 }
 
 export function toggleDarkMode() {

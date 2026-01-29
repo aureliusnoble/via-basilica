@@ -103,7 +103,12 @@ export async function checkBlockedLinks(
 		// Update cache and result
 		const now = Date.now();
 		for (const title of uncachedTitles) {
-			const blockedCategory = blockedLinks[title] ?? null;
+			// Try multiple title formats for lookup (Wikipedia normalizes titles)
+			const blockedCategory =
+				blockedLinks[title] ??
+				blockedLinks[title.charAt(0).toUpperCase() + title.slice(1)] ??
+				blockedLinks[title.replace(/ /g, '_')] ??
+				null;
 			result[title] = blockedCategory;
 
 			// Cache this result

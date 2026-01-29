@@ -7,7 +7,7 @@
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { getArchiveChallenges } from '$lib/api/challenges.js';
 	import { formatDate } from '$lib/utils/date-helpers.js';
-	import { BLOCKED_CATEGORY_COLORS } from '$lib/utils/blocked-categories.js';
+	import { BLOCKED_CATEGORY_BG_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
 	import type { DailyChallenge } from '$lib/types/database.js';
 
 	let challenges = $state<DailyChallenge[]>([]);
@@ -56,10 +56,13 @@
 									{challenge.start_article.replace(/_/g, ' ')}
 								</p>
 								{#if challenge.blocked_categories && challenge.blocked_categories.length > 0}
-									<div class="flex items-center gap-1 mt-1">
-										<span class="text-xs text-text-dark-muted">Blocked:</span>
+									<div class="flex items-center gap-1.5 mt-1.5 flex-wrap">
 										{#each challenge.blocked_categories as cat}
-											<span class="text-xs" title={cat}>{BLOCKED_CATEGORY_COLORS[cat] || '🚫'}</span>
+											<span
+												class="inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-medium border {BLOCKED_CATEGORY_BG_COLORS[cat] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}"
+											>
+												{BLOCKED_CATEGORY_NAMES[cat] || cat}
+											</span>
 										{/each}
 									</div>
 								{/if}

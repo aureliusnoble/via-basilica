@@ -7,6 +7,7 @@ import type {
 	WikipediaLinksResponse
 } from '$lib/types/wikipedia.js';
 import type { BlockedLinksMap } from './blocked-categories.js';
+import { BLOCKED_CATEGORY_LINK_COLORS } from '$lib/utils/blocked-categories.js';
 
 const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
 const WIKIPEDIA_REST = 'https://en.wikipedia.org/api/rest_v1';
@@ -103,6 +104,9 @@ function processWikipediaHtml(
 				link.removeAttribute('href');
 				link.setAttribute('data-blocked-category', blockedCategory);
 				link.classList.add('wiki-blocked-link');
+				// Add inline background color based on category
+				const bgColor = BLOCKED_CATEGORY_LINK_COLORS[blockedCategory] || 'rgba(239, 68, 68, 0.2)';
+				(link as HTMLElement).style.backgroundColor = bgColor;
 				return;
 			}
 
@@ -145,9 +149,9 @@ function processWikipediaHtml(
 
 	// Sanitize
 	const sanitized = DOMPurify.sanitize(doc.body.innerHTML, {
-		ADD_ATTR: ['data-wiki-link', 'data-wiki-title', 'data-blocked-category', 'loading', 'target', 'rel'],
+		ADD_ATTR: ['data-wiki-link', 'data-wiki-title', 'data-blocked-category', 'loading', 'target', 'rel', 'style'],
 		ADD_TAGS: ['section', 'figure', 'figcaption'],
-		FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
+		FORBID_TAGS: ['script', 'iframe', 'object', 'embed'],
 		FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
 	});
 
