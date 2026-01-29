@@ -104,7 +104,7 @@ export async function generateShareText(
 	}
 
 	lines.push(categoryChain);
-	lines.push(`${hops} hops | ${timeStr}`);
+	lines.push(`${hops} steps | ${timeStr}`);
 
 	// Add legend
 	if (legendLines.length > 0) {
