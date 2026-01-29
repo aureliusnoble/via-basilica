@@ -44,7 +44,7 @@ export async function signInWithOAuth(provider: AuthProvider): Promise<{ error: 
 
 	// Get the base path from the current URL (handles both local dev and deployed paths)
 	const basePath = import.meta.env.BASE_URL || '';
-	const redirectUrl = `${window.location.origin}${basePath}auth/callback`;
+	const redirectUrl = `${window.location.origin}${basePath}/auth/callback`;
 
 	const { error } = await supabase.auth.signInWithOAuth({
 		provider: provider as Provider,
@@ -72,7 +72,7 @@ export async function resetPassword(email: string): Promise<{ error: Error | nul
 	const supabase = getSupabase();
 
 	const basePath = import.meta.env.BASE_URL || '';
-	const redirectUrl = `${window.location.origin}${basePath}auth/callback?type=recovery`;
+	const redirectUrl = `${window.location.origin}${basePath}/auth/callback?type=recovery`;
 
 	const { error } = await supabase.auth.resetPasswordForEmail(email, {
 		redirectTo: redirectUrl
