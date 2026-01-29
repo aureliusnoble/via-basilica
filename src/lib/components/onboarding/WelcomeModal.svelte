@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { Ban } from 'lucide-svelte';
+	import { Ban, Cross } from 'lucide-svelte';
 	import { getUIState, setShowWelcomeModal } from '$lib/state/ui.svelte.js';
 
 	const ui = getUIState();
@@ -11,7 +11,7 @@
 	<div class="text-center">
 		<div class="mb-6">
 			<div class="w-20 h-20 mx-auto mb-4 rounded-full bg-gold/20 flex items-center justify-center">
-				<span class="text-4xl">&#x2628;</span>
+				<Cross size={40} class="text-gold" />
 			</div>
 			<h2 class="text-2xl font-serif text-gold mb-2">Welcome to Via Basilica</h2>
 		</div>

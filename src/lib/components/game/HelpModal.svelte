@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
-	import { Target, MousePointerClick, Ban, Trophy } from 'lucide-svelte';
+	import { Target, MousePointerClick, Ban, Trophy, Cross } from 'lucide-svelte';
 	import { getUIState, setShowHelpModal } from '$lib/state/ui.svelte.js';
 
 	const ui = getUIState();
@@ -11,7 +11,7 @@
 	<div class="text-center">
 		<div class="mb-6">
 			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/20 flex items-center justify-center">
-				<span class="text-3xl">&#x2628;</span>
+				<Cross size={32} class="text-gold" />
 			</div>
 			<h2 class="text-xl font-serif text-gold mb-2">How to Play</h2>
 		</div>
