@@ -7,9 +7,67 @@ import { corsHeaders } from '../_shared/cors.ts';
 import CLASS_MAPPING from './class-to-category.json' with { type: 'json' };
 
 const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
+const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
 
 // Batch size for Wikidata API calls (max 50)
 const WIKIDATA_BATCH_SIZE = 50;
+
+// Wikipedia category keywords that map to our categories
+// Used as fallback when P31 values are not available
+const CATEGORY_KEYWORDS: Record<string, string[]> = {
+	Religion: [
+		'religion', 'christianity', 'christian', 'church', 'catholic', 'orthodox',
+		'protestant', 'saints', 'popes', 'bishops', 'clergy', 'religious',
+		'theology', 'bible', 'biblical', 'jesus', 'god', 'divine', 'sacred',
+		'monastery', 'monks', 'nuns', 'prayer', 'worship', 'faith'
+	],
+	History: [
+		'history', 'historical', 'ancient', 'medieval', 'century', 'war',
+		'battle', 'empire', 'dynasty', 'revolution', 'era', 'period',
+		'civilization', 'kingdom', 'reign', 'conquest'
+	],
+	People: [
+		'people', 'births', 'deaths', 'living people', 'person', 'biography'
+	],
+	Geography: [
+		'geography', 'countries', 'cities', 'places', 'regions', 'mountains',
+		'rivers', 'islands', 'continents'
+	],
+	Science: [
+		'science', 'biology', 'chemistry', 'physics', 'mathematics', 'medicine',
+		'species', 'genus', 'family'
+	],
+	Arts: [
+		'art', 'arts', 'film', 'music', 'album', 'song', 'literature', 'novel',
+		'painting', 'theatre', 'television'
+	],
+	Sports: [
+		'sport', 'sports', 'football', 'basketball', 'olympic', 'championship',
+		'league', 'team', 'player'
+	],
+	Government: [
+		'government', 'politics', 'political', 'election', 'president', 'minister',
+		'parliament', 'congress'
+	],
+	Education: [
+		'education', 'university', 'college', 'school', 'academic'
+	],
+	Philosophy: [
+		'philosophy', 'philosophical', 'ethics', 'logic'
+	],
+	Culture: [
+		'culture', 'cultural', 'festival', 'tradition', 'folklore'
+	],
+	Language: [
+		'language', 'languages', 'linguistic'
+	],
+	Law: [
+		'law', 'legal', 'court', 'justice'
+	],
+	Society: [
+		'society', 'social', 'organization', 'company', 'corporation'
+	]
+};
 
 // Cache duration in days
 const CACHE_DURATION_DAYS = 30;
@@ -19,6 +77,69 @@ const MAX_P279_DEPTH = 3;
 
 // Cache for P279 lookups (within a single request)
 const p279Cache: Record<string, string[]> = {};
+
+// Fetch Wikipedia categories for articles (fallback when no P31)
+async function fetchWikipediaCategories(
+	titles: string[]
+): Promise<Record<string, string[]>> {
+	if (titles.length === 0) return {};
+
+	const params = new URLSearchParams({
+		action: 'query',
+		prop: 'categories',
+		titles: titles.join('|'),
+		cllimit: '20',
+		clshow: '!hidden',
+		format: 'json',
+		origin: '*'
+	});
+
+	try {
+		const response = await fetch(`${WIKIPEDIA_API}?${params}`);
+		const data = await response.json();
+
+		const results: Record<string, string[]> = {};
+		const pages = data.query?.pages || {};
+
+		for (const pageId of Object.keys(pages)) {
+			const page = pages[pageId];
+			if (page.title && page.categories) {
+				const categories = page.categories.map(
+					(cat: { title: string }) => cat.title.replace('Category:', '')
+				);
+				results[page.title] = categories;
+			}
+		}
+
+		return results;
+	} catch (error) {
+		console.error('Error fetching Wikipedia categories:', error);
+		return {};
+	}
+}
+
+// Classify using Wikipedia category keywords (fallback)
+function classifyWithWikipediaCategories(
+	categories: string[],
+	blockedCategories: string[]
+): string | null {
+	const categoriesLower = categories.map(c => c.toLowerCase());
+
+	for (const blockedCat of blockedCategories) {
+		const keywords = CATEGORY_KEYWORDS[blockedCat];
+		if (!keywords) continue;
+
+		for (const category of categoriesLower) {
+			for (const keyword of keywords) {
+				if (category.includes(keyword)) {
+					return blockedCat;
+				}
+			}
+		}
+	}
+
+	return null;
+}
 
 // Initialize Supabase client for caching
 function getSupabaseClient() {
@@ -381,11 +502,36 @@ serve(async (req) => {
 		// Step 4: Classify articles and identify blocked ones
 		// Use P279 chain lookup for unknown classes
 		const blockedLinks: Record<string, string | null> = {};
+		const titlesNeedingWikipediaFallback: string[] = [];
 
 		for (const title of titles) {
 			const p31Values = allP31Values[title] || allP31Values[title.replace(/ /g, '_')] || [];
-			const blockedCategory = await classifyArticle(p31Values, blockedCategories);
-			blockedLinks[title] = blockedCategory;
+
+			if (p31Values.length === 0) {
+				// No P31 values - will need Wikipedia category fallback
+				titlesNeedingWikipediaFallback.push(title);
+				blockedLinks[title] = null; // Placeholder
+			} else {
+				const blockedCategory = await classifyArticle(p31Values, blockedCategories);
+				blockedLinks[title] = blockedCategory;
+			}
+		}
+
+		// Step 5: Wikipedia category fallback for articles without P31
+		if (titlesNeedingWikipediaFallback.length > 0) {
+			// Fetch Wikipedia categories in batches
+			for (let i = 0; i < titlesNeedingWikipediaFallback.length; i += WIKIDATA_BATCH_SIZE) {
+				const batch = titlesNeedingWikipediaFallback.slice(i, i + WIKIDATA_BATCH_SIZE);
+				const wikiCategories = await fetchWikipediaCategories(batch);
+
+				for (const title of batch) {
+					const categories = wikiCategories[title] || wikiCategories[title.replace(/ /g, '_')] || [];
+					if (categories.length > 0) {
+						const blockedCategory = classifyWithWikipediaCategories(categories, blockedCategories);
+						blockedLinks[title] = blockedCategory;
+					}
+				}
+			}
 		}
 
 		return new Response(JSON.stringify({ blockedLinks }), {
