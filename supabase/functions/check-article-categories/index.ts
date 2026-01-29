@@ -61,53 +61,91 @@ const CATEGORY_KEYWORDS: Record<string, string[]> = {
 		'religion', 'christianity', 'christian', 'church', 'catholic', 'orthodox',
 		'protestant', 'saints', 'popes', 'bishops', 'clergy', 'religious',
 		'theology', 'bible', 'biblical', 'jesus', 'god', 'divine', 'sacred',
-		'monastery', 'monks', 'nuns', 'prayer', 'worship', 'faith'
+		'monastery', 'monks', 'nuns', 'prayer', 'worship', 'faith', 'basilica',
+		'temple', 'abbey', 'cathedral', 'diocese', 'archdiocese', 'patriarch',
+		'pilgrimage', 'relic', 'canonization', 'beatification', 'martyr'
 	],
 	History: [
 		'history', 'historical', 'ancient', 'medieval', 'century', 'war',
 		'battle', 'empire', 'dynasty', 'revolution', 'era', 'period',
-		'civilization', 'kingdom', 'reign', 'conquest'
+		'civilization', 'kingdom', 'reign', 'conquest', 'crusade', 'rebellion',
+		'siege', 'treaty', 'armistice', 'archaeological', 'antiquity', 'byzantine',
+		'roman empire', 'ottoman', 'classical'
 	],
 	People: [
-		'people', 'births', 'deaths', 'living people', 'person', 'biography'
+		'people', 'births', 'deaths', 'living people', 'person', 'biography',
+		'writers', 'authors', 'poets', 'politicians', 'scientists', 'artists',
+		'actors', 'musicians', 'athletes', 'philosophers', 'monarchs', 'nobility',
+		'military personnel', 'clergy', 'lawyers', 'physicians', 'engineers'
 	],
 	Geography: [
 		'geography', 'countries', 'cities', 'places', 'regions', 'mountains',
-		'rivers', 'islands', 'continents'
+		'rivers', 'islands', 'continents', 'valleys', 'lakes', 'seas', 'oceans',
+		'peninsulas', 'plateaus', 'hills', 'settlements', 'provinces', 'states'
 	],
 	Science: [
 		'science', 'biology', 'chemistry', 'physics', 'mathematics', 'medicine',
-		'species', 'genus', 'family'
+		'species', 'genus', 'family', 'disease', 'syndrome', 'disorder', 'compound',
+		'element', 'astronomy', 'geology', 'ecology', 'genetics', 'technology'
 	],
 	Arts: [
 		'art', 'arts', 'film', 'music', 'album', 'song', 'literature', 'novel',
-		'painting', 'theatre', 'television'
+		'painting', 'theatre', 'television', 'anime', 'manga', 'video game',
+		'sculpture', 'poetry', 'drama', 'comedy', 'opera', 'ballet'
 	],
 	Sports: [
 		'sport', 'sports', 'football', 'basketball', 'olympic', 'championship',
-		'league', 'team', 'player'
+		'league', 'team', 'player', 'athletics', 'soccer', 'cricket', 'rugby',
+		'tennis', 'golf', 'hockey', 'baseball', 'stadium', 'tournament'
 	],
 	Government: [
 		'government', 'politics', 'political', 'election', 'president', 'minister',
-		'parliament', 'congress'
+		'parliament', 'congress', 'senate', 'legislature', 'cabinet', 'ambassador',
+		'diplomat', 'governor', 'mayor', 'referendum', 'democracy'
 	],
 	Education: [
-		'education', 'university', 'college', 'school', 'academic'
+		'education', 'university', 'college', 'school', 'academic', 'library',
+		'museum', 'institute', 'academy', 'faculty', 'curriculum', 'degree'
 	],
 	Philosophy: [
-		'philosophy', 'philosophical', 'ethics', 'logic'
+		'philosophy', 'philosophical', 'ethics', 'logic', 'metaphysics',
+		'epistemology', 'existentialism', 'rationalism', 'empiricism'
 	],
 	Culture: [
-		'culture', 'cultural', 'festival', 'tradition', 'folklore'
+		'culture', 'cultural', 'festival', 'tradition', 'folklore', 'mythology',
+		'cuisine', 'holiday', 'celebration', 'ritual', 'custom', 'heritage'
 	],
 	Language: [
-		'language', 'languages', 'linguistic'
+		'language', 'languages', 'linguistic', 'dialect', 'alphabet', 'script',
+		'grammar', 'vocabulary', 'etymology'
 	],
 	Law: [
-		'law', 'legal', 'court', 'justice'
+		'law', 'legal', 'court', 'justice', 'crime', 'criminal', 'constitution',
+		'statute', 'legislation', 'treaty', 'rights', 'judiciary'
 	],
 	Society: [
-		'society', 'social', 'organization', 'company', 'corporation'
+		'society', 'social', 'organization', 'company', 'corporation', 'nonprofit',
+		'association', 'movement', 'community', 'class'
+	],
+	Architecture: [
+		'architecture', 'building', 'structure', 'castle', 'palace', 'tower',
+		'bridge', 'monument', 'landmark', 'heritage site', 'historic building'
+	],
+	Transportation: [
+		'transportation', 'transport', 'railway', 'railroad', 'station', 'airport',
+		'port', 'ship', 'vessel', 'aircraft', 'airline', 'road', 'highway'
+	],
+	Military: [
+		'military', 'army', 'navy', 'air force', 'regiment', 'battalion', 'brigade',
+		'division', 'corps', 'fleet', 'weapon', 'missile', 'tank', 'warship'
+	],
+	Economics: [
+		'economics', 'economy', 'economic', 'finance', 'financial', 'bank', 'stock',
+		'trade', 'commerce', 'industry', 'market', 'currency'
+	],
+	Humanities: [
+		'humanities', 'genre', 'movement', 'style', 'period', 'classical', 'modern',
+		'contemporary', 'renaissance', 'baroque', 'romantic'
 	]
 };
 
