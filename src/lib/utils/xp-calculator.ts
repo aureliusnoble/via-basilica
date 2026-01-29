@@ -38,19 +38,3 @@ export function calculateXp(
 	};
 }
 
-export function calculatePercentilePoints(rank: number, totalPlayers: number): number {
-	if (totalPlayers === 0) return 0;
-
-	const percentile = (rank / totalPlayers) * 100;
-
-	if (percentile <= 10) return 10;
-	if (percentile <= 20) return 9;
-	if (percentile <= 30) return 8;
-	if (percentile <= 40) return 7;
-	if (percentile <= 50) return 6;
-	if (percentile <= 60) return 5;
-	if (percentile <= 70) return 4;
-	if (percentile <= 80) return 3;
-	if (percentile <= 90) return 2;
-	return 1;
-}

@@ -103,11 +103,39 @@ serve(async (req) => {
 			throw updateError;
 		}
 
+		// Calculate and award points if verified (daily mode only)
+		let pointsAwarded = game.points_awarded;
+		if (verified && game.mode === 'daily' && game.points_awarded === 0) {
+			const points = 5 + Math.max(0, 15 - game.hops);
+
+			// Update game_results with points
+			await admin
+				.from('game_results')
+				.update({ points_awarded: points })
+				.eq('id', game_id);
+
+			// Update profile total_points
+			const { data: profile } = await admin
+				.from('profiles')
+				.select('total_points')
+				.eq('id', game.user_id)
+				.single();
+
+			if (profile) {
+				await admin
+					.from('profiles')
+					.update({ total_points: (profile.total_points || 0) + points })
+					.eq('id', game.user_id);
+			}
+
+			pointsAwarded = points;
+		}
+
 		return new Response(
 			JSON.stringify({
 				verified,
 				issues,
-				points_awarded: game.points_awarded
+				points_awarded: pointsAwarded
 			}),
 			{ headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
 		);
