@@ -15,6 +15,7 @@
 	import { shareResult } from '$lib/utils/share.js';
 	import { toast } from 'svelte-sonner';
 	import type { DailyChallenge, GameResult } from '$lib/types/database.js';
+	import { BLOCKED_CATEGORY_BG_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
 
 	const auth = getAuthState();
 
@@ -182,7 +183,22 @@
 				</div>
 
 				<h2 class="text-xl font-serif text-text-dark mb-2">Today's Starting Point</h2>
-				<p class="text-gold font-medium mb-4">{challenge.start_article.replace(/_/g, ' ')}</p>
+				<p class="text-gold font-medium mb-2">{challenge.start_article.replace(/_/g, ' ')}</p>
+
+				{#if challenge.blocked_categories && challenge.blocked_categories.length > 0}
+					<div class="flex items-center gap-2 flex-wrap mb-4">
+						<span class="text-xs text-text-dark-muted">Blocked:</span>
+						{#each challenge.blocked_categories as category}
+							<span
+								class="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium border {BLOCKED_CATEGORY_BG_COLORS[category] || 'bg-gray-500/20 text-gray-300 border-gray-500/30'}"
+							>
+								{BLOCKED_CATEGORY_NAMES[category] || category}
+							</span>
+						{/each}
+					</div>
+				{:else}
+					<div class="mb-4"></div>
+				{/if}
 
 				{#if todaysResult?.completed_at}
 					<div class="bg-bg-dark-tertiary/50 rounded-lg p-4 mb-4">

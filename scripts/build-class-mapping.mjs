@@ -48,6 +48,7 @@ const TARGET_CLASSES = [
   { id: 'Q3624078', category: 'Geography', label: 'sovereign state', limit: 500 },
   { id: 'Q107390', category: 'Geography', label: 'federated state', limit: 1000 },
   { id: 'Q1093829', category: 'Geography', label: 'city-state', limit: 200 },
+  { id: 'Q93352', category: 'Geography', label: 'coast', limit: 500 },
 
   // ===========================================
   // PEOPLE - human beings and person types
@@ -199,12 +200,9 @@ const TARGET_CLASSES = [
   { id: 'Q17537576', category: 'Arts', label: 'creative work', limit: 2000 },
   { id: 'Q2188189', category: 'Arts', label: 'musical work', limit: 1500 },
   { id: 'Q860861', category: 'Arts', label: 'sculpture', limit: 1000 },
-  { id: 'Q93352', category: 'Arts', label: 'coast', limit: 500 },
-  { id: 'Q191067', category: 'Arts', label: 'article', limit: 1000 },
   { id: 'Q21191270', category: 'Arts', label: 'television episode', limit: 500 },
   { id: 'Q11090', category: 'Arts', label: 'album', limit: 1000 },
   { id: 'Q105543609', category: 'Arts', label: 'musical composition', limit: 1000 },
-  { id: 'Q210272', category: 'Arts', label: 'cultural property', limit: 1000 },
   { id: 'Q1569167', category: 'Arts', label: 'fiction character', limit: 2000 },
   { id: 'Q15773347', category: 'Arts', label: 'theatrical work', limit: 1000 },
   { id: 'Q5185279', category: 'Arts', label: 'poem', limit: 500 },
@@ -275,6 +273,7 @@ const TARGET_CLASSES = [
   { id: 'Q106559804', category: 'Culture', label: 'cultural concept', limit: 1000 },
   { id: 'Q11028', category: 'Culture', label: 'information', limit: 500 },
   { id: 'Q13028', category: 'Culture', label: 'holiday', limit: 500 },
+  { id: 'Q210272', category: 'Culture', label: 'cultural heritage', limit: 1000 },
 
   // ===========================================
   // EDUCATION
