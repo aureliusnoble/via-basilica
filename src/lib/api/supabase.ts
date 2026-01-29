@@ -1,11 +1,12 @@
-import { createClient, type SupabaseClient } from '@supabase/supabase-js';
+import { createBrowserClient } from '@supabase/ssr';
+import type { SupabaseClient } from '@supabase/supabase-js';
 import { browser } from '$app/environment';
 import { PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY } from '$env/static/public';
 
 let supabaseInstance: SupabaseClient | null = null;
 
 function createSupabaseClient(): SupabaseClient | null {
-	console.log('[Supabase] Creating client...');
+	console.log('[Supabase] Creating client with @supabase/ssr...');
 	console.log('[Supabase] URL configured:', !!PUBLIC_SUPABASE_URL);
 	console.log('[Supabase] Key configured:', !!PUBLIC_SUPABASE_ANON_KEY);
 
@@ -16,12 +17,8 @@ function createSupabaseClient(): SupabaseClient | null {
 		return null;
 	}
 	try {
-		const client = createClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
-			auth: {
-				persistSession: true,
-				autoRefreshToken: true
-			}
-		});
+		// Use createBrowserClient from @supabase/ssr for CSP-friendly auth
+		const client = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
 		console.log('[Supabase] Client created successfully');
 		return client;
 	} catch (error) {
