@@ -114,6 +114,14 @@ body {
 	text-decoration-color: rgba(212, 175, 55, 0.6);
 }
 
+/* Disabled links while checking categories */
+.wiki-content.links-disabled a[data-wiki-link] {
+	color: var(--text-muted);
+	cursor: wait;
+	pointer-events: none;
+	opacity: 0.6;
+}
+
 /* Blocked category links */
 .wiki-content .wiki-blocked-link {
 	color: #dc2626 !important;

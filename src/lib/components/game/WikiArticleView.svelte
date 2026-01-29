@@ -167,7 +167,13 @@
 	function handleClick(e: MouseEvent) {
 		const target = e.target as HTMLElement;
 
-		// Check for blocked links first
+		// Block all link clicks while checking is in progress
+		if (isCheckingLinks) {
+			e.preventDefault();
+			return;
+		}
+
+		// Check for blocked links
 		const blockedLink = target.closest('a[data-blocked-category]');
 		if (blockedLink) {
 			e.preventDefault();
@@ -194,6 +200,12 @@
 		if (e.key === 'Enter' || e.key === ' ') {
 			const target = e.target as HTMLElement;
 
+			// Block all link navigation while checking is in progress
+			if (isCheckingLinks) {
+				e.preventDefault();
+				return;
+			}
+
 			if (target.matches('a[data-blocked-category]')) {
 				e.preventDefault();
 				return;
@@ -218,7 +230,7 @@
 <!-- svelte-ignore a11y_click_events_have_key_events -->
 <div
 	bind:this={containerRef}
-	class="wiki-content px-4 py-4 overflow-y-auto max-w-lg lg:max-w-4xl xl:max-w-5xl mx-auto"
+	class="wiki-content px-4 py-4 overflow-y-auto max-w-lg lg:max-w-4xl xl:max-w-5xl mx-auto {isCheckingLinks ? 'links-disabled' : ''}"
 	onclick={handleClick}
 	onkeydown={handleKeyDown}
 >
