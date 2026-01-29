@@ -9,6 +9,42 @@ export async function createGameResult(
 ): Promise<GameResult | null> {
 	const supabase = getSupabase();
 
+	// For daily challenges, check if there's an existing incomplete result
+	if (mode === 'daily' && challengeId) {
+		const { data: existing } = await supabase
+			.from('game_results')
+			.select('*')
+			.eq('user_id', userId)
+			.eq('mode', 'daily')
+			.eq('challenge_id', challengeId)
+			.is('completed_at', null)
+			.maybeSingle();
+
+		if (existing) {
+			// Reset the existing incomplete game for a fresh start
+			const { data: updated, error: updateError } = await supabase
+				.from('game_results')
+				.update({
+					hops: 0,
+					path: [],
+					powerups_used: [],
+					started_at: new Date().toISOString(),
+					points_awarded: 0,
+					verified: false
+				})
+				.eq('id', existing.id)
+				.select()
+				.single();
+
+			if (updateError) {
+				console.error('Error resetting game result:', updateError);
+				return existing; // Return existing record even if reset failed
+			}
+
+			return updated;
+		}
+	}
+
 	const { data, error } = await supabase
 		.from('game_results')
 		.insert({
