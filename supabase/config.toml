@@ -1,6 +1,3 @@
-[project]
-id = "via-basilica"
-
 [api]
 enabled = true
 port = 54321
@@ -11,7 +8,7 @@ max_rows = 1000
 [db]
 port = 54322
 shadow_port = 54320
-major_version = 15
+major_version = 17
 
 [studio]
 enabled = true
@@ -27,7 +24,7 @@ enabled = true
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173/auth/callback", "https://viabasilica.github.io/auth/callback"]
+additional_redirect_urls = ["http://localhost:5173/auth/callback", "https://aureliusnoble.github.io/auth/callback"]
 jwt_expiry = 3600
 enable_signup = true
 
@@ -37,19 +34,22 @@ double_confirm_changes = true
 enable_confirmations = true
 
 [auth.external.google]
-enabled = true
-client_id = "env(GOOGLE_CLIENT_ID)"
-secret = "env(GOOGLE_CLIENT_SECRET)"
+enabled = false
+client_id = ""
+secret = ""
 
 [auth.external.github]
-enabled = true
-client_id = "env(GITHUB_CLIENT_ID)"
-secret = "env(GITHUB_CLIENT_SECRET)"
+enabled = false
+client_id = ""
+secret = ""
 
 [auth.external.discord]
-enabled = true
-client_id = "env(DISCORD_CLIENT_ID)"
-secret = "env(DISCORD_CLIENT_SECRET)"
+enabled = false
+client_id = ""
+secret = ""
 
-[functions]
-verify_jwt = true
+[functions.generate-daily-challenge]
+verify_jwt = false  # If called by pg_cron
+
+[functions.calculate-daily-points]
+verify_jwt = false  # If called by pg_cron
