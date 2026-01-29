@@ -4,6 +4,7 @@ import { getSupabaseSafe } from './supabase.js';
 export type BlockedLinksMap = Record<string, string | null>;
 
 const CACHE_KEY = 'via_basilica_blocked_cache';
+const CACHE_VERSION = 2; // Increment to invalidate old cache entries
 const CACHE_DURATION_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 interface CacheEntry {
@@ -12,21 +13,29 @@ interface CacheEntry {
 }
 
 interface Cache {
+	version: number;
 	entries: Record<string, CacheEntry>;
 }
 
 function getCache(): Cache {
-	if (!browser) return { entries: {} };
+	if (!browser) return { version: CACHE_VERSION, entries: {} };
 
 	try {
 		const cached = localStorage.getItem(CACHE_KEY);
 		if (cached) {
-			return JSON.parse(cached);
+			const parsed = JSON.parse(cached);
+			// Invalidate cache if version mismatch
+			if (parsed.version !== CACHE_VERSION) {
+				console.log('[BlockedCategories] Cache version mismatch, clearing old cache');
+				localStorage.removeItem(CACHE_KEY);
+				return { version: CACHE_VERSION, entries: {} };
+			}
+			return parsed;
 		}
 	} catch {
 		// Ignore parse errors
 	}
-	return { entries: {} };
+	return { version: CACHE_VERSION, entries: {} };
 }
 
 function saveCache(cache: Cache): void {
@@ -40,6 +49,8 @@ function saveCache(cache: Cache): void {
 				delete cache.entries[key];
 			}
 		}
+		// Ensure version is set
+		cache.version = CACHE_VERSION;
 		localStorage.setItem(CACHE_KEY, JSON.stringify(cache));
 	} catch {
 		// Ignore storage errors
@@ -55,8 +66,10 @@ export async function checkBlockedLinks(
 	blockedCategories: string[]
 ): Promise<BlockedLinksMap> {
 	if (!browser || blockedCategories.length === 0 || titles.length === 0) {
+		console.log('[BlockedCategories] Early return:', { browser, blockedCategories, titlesCount: titles.length });
 		return {};
 	}
+	console.log(`[BlockedCategories] Checking ${titles.length} titles...`);
 
 	const cache = getCache();
 	const result: BlockedLinksMap = {};
@@ -86,6 +99,8 @@ export async function checkBlockedLinks(
 	}
 
 	try {
+		console.log(`[BlockedCategories] Checking ${uncachedTitles.length} uncached titles with categories:`, blockedCategories);
+
 		const { data, error } = await supabase.functions.invoke('check-article-categories', {
 			body: {
 				titles: uncachedTitles,
@@ -94,11 +109,15 @@ export async function checkBlockedLinks(
 		});
 
 		if (error) {
-			console.error('Error checking blocked categories:', error);
+			console.error('[BlockedCategories] Error checking blocked categories:', error);
 			return result;
 		}
 
 		const blockedLinks: BlockedLinksMap = data?.blockedLinks || {};
+
+		// Log how many were blocked
+		const blockedCount = Object.values(blockedLinks).filter(v => v !== null).length;
+		console.log(`[BlockedCategories] Result: ${blockedCount}/${uncachedTitles.length} blocked`);
 
 		// Update cache and result
 		const now = Date.now();
