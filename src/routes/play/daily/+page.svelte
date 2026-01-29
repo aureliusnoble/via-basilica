@@ -70,6 +70,10 @@
 			if (resumed && game.state?.challengeId === challenge.id) {
 				// Resume game
 				startTimer();
+				// Check if we're already on the target article
+				if (isTargetArticle(game.currentArticle)) {
+					await handleVictory();
+				}
 			} else {
 				// Show powerup selection (or skip if not authenticated)
 				if (auth.isAuthenticated) {
