@@ -1,6 +1,12 @@
 import { browser } from '$app/environment';
 import { supabase } from './supabase.js';
 
+// Helper to build redirect URL without double slashes
+function getRedirectUrl(path: string): string {
+	const basePath = (import.meta.env.BASE_URL || '').replace(/\/$/, '');
+	return `${window.location.origin}${basePath}${path}`;
+}
+
 // Re-export types from Supabase for convenience
 export type User = {
 	id: string;
@@ -36,7 +42,7 @@ export async function signUp(email: string, password: string): Promise<AuthResul
 		email,
 		password,
 		options: {
-			emailRedirectTo: `${window.location.origin}${import.meta.env.BASE_URL || ''}/auth/callback`
+			emailRedirectTo: getRedirectUrl('/auth/callback')
 		}
 	});
 
@@ -78,7 +84,7 @@ export async function signInWithOAuth(
 	const { error } = await supabase.auth.signInWithOAuth({
 		provider,
 		options: {
-			redirectTo: `${window.location.origin}${import.meta.env.BASE_URL || ''}/auth/callback`
+			redirectTo: getRedirectUrl('/auth/callback')
 		}
 	});
 
@@ -100,7 +106,7 @@ export async function resetPassword(email: string): Promise<{ error: Error | nul
 	}
 
 	const { error } = await supabase.auth.resetPasswordForEmail(email, {
-		redirectTo: `${window.location.origin}${import.meta.env.BASE_URL || ''}/auth/callback?type=recovery`
+		redirectTo: getRedirectUrl('/auth/callback?type=recovery')
 	});
 
 	return { error: error ? new Error(error.message) : null };
