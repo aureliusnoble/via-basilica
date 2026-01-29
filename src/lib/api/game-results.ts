@@ -115,11 +115,9 @@ export async function getTodaysResult(userId: string, challengeId?: number): Pro
 		.eq('user_id', userId)
 		.eq('mode', 'daily')
 		.eq('challenge_id', challengeId)
-		.single();
+		.maybeSingle();
 
 	if (error) {
-		// No result found is not an error
-		if (error.code === 'PGRST116') return null;
 		console.error('Error fetching today result:', error);
 		return null;
 	}
