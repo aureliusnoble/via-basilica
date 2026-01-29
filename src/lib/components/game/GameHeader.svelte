@@ -25,36 +25,24 @@
 </script>
 
 <header class="bg-bg-dark/95 backdrop-blur-sm border-b border-bg-dark-tertiary">
-	<div class="flex items-center justify-between h-14 px-4 max-w-lg mx-auto">
-		<!-- Left side: Exit and Go Back buttons -->
-		<div class="flex items-center gap-1">
-			<a
-				href="{base}{backHref}"
-				class="p-2 -ml-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors touch-target"
-				aria-label="Exit game"
-			>
-				<X size={20} />
-			</a>
-			{#if canGoBack && onGoBack}
-				<button
-					onclick={onGoBack}
-					class="p-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors flex items-center gap-1 text-sm text-text-dark-muted hover:text-text-dark"
-					aria-label="Go back to previous article"
-					title="Go back (counts as a step)"
-				>
-					<Undo2 size={18} />
-				</button>
-			{/if}
-		</div>
+	<div class="flex items-center justify-between h-16 px-4 max-w-lg mx-auto">
+		<!-- Left side: Exit button -->
+		<a
+			href="{base}{backHref}"
+			class="p-2 -ml-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors touch-target"
+			aria-label="Exit game"
+		>
+			<X size={24} />
+		</a>
 
 		<!-- Stats -->
-		<div class="flex items-center gap-4">
+		<div class="flex items-center gap-6">
 			<div class="text-center">
-				<p class="text-2xl font-bold text-gold">{hops}</p>
-				<p class="text-xs text-text-dark-muted">hops</p>
+				<p class="text-3xl font-bold text-gold">{hops}</p>
+				<p class="text-xs text-text-dark-muted">steps</p>
 			</div>
 			<div class="text-center">
-				<p class="text-lg font-medium text-text-dark">{formatDuration(elapsedSeconds)}</p>
+				<p class="text-xl font-medium text-text-dark">{formatDuration(elapsedSeconds)}</p>
 				<p class="text-xs text-text-dark-muted">time</p>
 			</div>
 		</div>
@@ -65,9 +53,23 @@
 			class="p-2 rounded-lg hover:bg-bg-dark-tertiary transition-colors"
 			aria-label="Game help"
 		>
-			<HelpCircle size={20} class="text-gold" />
+			<HelpCircle size={24} class="text-gold" />
 		</button>
 	</div>
+
+	<!-- Go Back button row -->
+	{#if canGoBack && onGoBack}
+		<div class="px-4 pb-2 max-w-lg mx-auto">
+			<button
+				onclick={onGoBack}
+				class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-bg-dark-tertiary hover:bg-bg-dark-secondary transition-colors text-sm text-text-dark-muted hover:text-text-dark border border-bg-dark-tertiary hover:border-gold/30"
+				aria-label="Go back to previous article"
+			>
+				<Undo2 size={16} />
+				<span>Return to previous page</span>
+			</button>
+		</div>
+	{/if}
 
 	<!-- Blocked categories bar -->
 	{#if blockedCategories.length > 0}
