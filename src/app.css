@@ -256,3 +256,115 @@ html.light .bg-bg-dark\/95 {
 html.light .ring-offset-bg-dark {
 	--tw-ring-offset-color: var(--bg-primary);
 }
+
+/* ===== Bio Page Styles ===== */
+
+/* Byzantine cross-hatch pattern overlay */
+.byzantine-pattern {
+	position: relative;
+}
+
+.byzantine-pattern::before {
+	content: '';
+	position: absolute;
+	inset: 0;
+	background-image:
+		linear-gradient(45deg, rgba(212, 175, 55, 0.03) 25%, transparent 25%),
+		linear-gradient(-45deg, rgba(212, 175, 55, 0.03) 25%, transparent 25%),
+		linear-gradient(45deg, transparent 75%, rgba(212, 175, 55, 0.03) 75%),
+		linear-gradient(-45deg, transparent 75%, rgba(212, 175, 55, 0.03) 75%);
+	background-size: 20px 20px;
+	background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+	pointer-events: none;
+	z-index: 1;
+}
+
+.byzantine-pattern > * {
+	position: relative;
+	z-index: 2;
+}
+
+/* Gold text gradient */
+.text-gold-gradient {
+	background: linear-gradient(135deg, var(--color-gold-light), var(--color-gold), var(--color-gold-dark));
+	-webkit-background-clip: text;
+	background-clip: text;
+	-webkit-text-fill-color: transparent;
+}
+
+/* Icon glow effect */
+.icon-glow {
+	filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.5));
+}
+
+/* Hero section cross glow */
+.cross-glow {
+	filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.6)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.3));
+	animation: cross-pulse 3s ease-in-out infinite;
+}
+
+@keyframes cross-pulse {
+	0%, 100% {
+		filter: drop-shadow(0 0 20px rgba(212, 175, 55, 0.6)) drop-shadow(0 0 40px rgba(212, 175, 55, 0.3));
+	}
+	50% {
+		filter: drop-shadow(0 0 30px rgba(212, 175, 55, 0.8)) drop-shadow(0 0 60px rgba(212, 175, 55, 0.4));
+	}
+}
+
+/* Horizontal scroll container for stats */
+.stats-scroll {
+	display: flex;
+	gap: 1rem;
+	overflow-x: auto;
+	scroll-snap-type: x mandatory;
+	-webkit-overflow-scrolling: touch;
+	scrollbar-width: none;
+	padding-bottom: 0.5rem;
+}
+
+.stats-scroll::-webkit-scrollbar {
+	display: none;
+}
+
+.stats-scroll > * {
+	scroll-snap-align: start;
+}
+
+/* Fade in animation for sections */
+.fade-in-up {
+	animation: fadeInUp 0.6s ease-out forwards;
+	opacity: 0;
+}
+
+@keyframes fadeInUp {
+	from {
+		opacity: 0;
+		transform: translateY(20px);
+	}
+	to {
+		opacity: 1;
+		transform: translateY(0);
+	}
+}
+
+/* Staggered animation delays */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+
+/* Fun fact card hover effect */
+.fun-fact-card {
+	background: var(--bg-secondary);
+	border: 1px solid var(--bg-tertiary);
+	border-radius: 0.75rem;
+	padding: 1rem;
+	transition: all 0.2s ease;
+}
+
+.fun-fact-card:hover {
+	border-color: rgba(212, 175, 55, 0.3);
+	transform: translateY(-2px);
+}
