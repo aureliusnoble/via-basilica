@@ -2,7 +2,7 @@
 	import { tick } from 'svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
-	import { checkBlockedLinks } from '$lib/api/blocked-categories.js';
+	import { checkBlockedLinks, getArticleCategory } from '$lib/api/blocked-categories.js';
 	import { BLOCKED_CATEGORY_LINK_COLORS } from '$lib/utils/blocked-categories.js';
 
 	interface Props {
@@ -28,6 +28,7 @@
 	let error = $state<string | null>(null);
 	let containerRef = $state<HTMLElement | null>(null);
 	let currentlyLoadedTitle = $state('');
+	let currentArticleCategory = $state<string | null>(null);
 
 	// Link checking progress state
 	let isCheckingLinks = $state(false);
@@ -63,6 +64,14 @@
 			if (containerRef) {
 				containerRef.scrollTop = 0;
 			}
+
+			// Fetch the category for the current article (in background)
+			currentArticleCategory = null;
+			getArticleCategory(title).then(category => {
+				if (title === currentlyLoadedTitle) {
+					currentArticleCategory = category;
+				}
+			});
 
 			// If we have blocked categories, check links in background and apply styles via DOM
 			// Wait for Svelte to render the HTML to the DOM before querying it
@@ -252,7 +261,14 @@
 			</button>
 		</div>
 	{:else}
-		<h1 class="text-2xl font-serif text-text-dark font-semibold mb-4 border-b border-bg-dark-tertiary pb-2">{articleTitle.replace(/_/g, ' ')}</h1>
+		<div class="flex items-center justify-between gap-3 mb-4 border-b border-bg-dark-tertiary pb-2">
+			<h1 class="text-2xl font-serif text-text-dark font-semibold">{articleTitle.replace(/_/g, ' ')}</h1>
+			{#if currentArticleCategory}
+				<span class="text-xs px-2 py-1 rounded-full bg-bg-dark-tertiary text-text-dark-muted whitespace-nowrap">
+					{currentArticleCategory}
+				</span>
+			{/if}
+		</div>
 
 		{#if isCheckingLinks}
 			<div class="mb-4 p-3 bg-bg-dark-secondary rounded-lg">

@@ -673,7 +673,23 @@ serve(async (req) => {
 			updateCategoryCache(supabase, newCategoryClassifications);
 		}
 
-		return new Response(JSON.stringify({ blockedLinks }), {
+		// Build categories map (all categories, not just blocked)
+		const categories: Record<string, string | null> = {};
+
+		// Add cached categories
+		if (supabase) {
+			const categoryCache = await checkCategoryCache(supabase, titles);
+			for (const [title, category] of Object.entries(categoryCache.cached)) {
+				categories[title] = category;
+			}
+		}
+
+		// Add newly classified categories
+		for (const [title, category] of Object.entries(newCategoryClassifications)) {
+			categories[title] = category;
+		}
+
+		return new Response(JSON.stringify({ blockedLinks, categories }), {
 			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 		});
 	} catch (error) {

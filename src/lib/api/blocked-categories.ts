@@ -2,6 +2,7 @@ import { browser } from '$app/environment';
 import { getSupabaseSafe } from './supabase.js';
 
 export type BlockedLinksMap = Record<string, string | null>;
+export type CategoriesMap = Record<string, string | null>;
 
 const CACHE_KEY = 'via_basilica_blocked_cache';
 const CACHE_VERSION = 2; // Increment to invalidate old cache entries
@@ -144,5 +145,34 @@ export function clearBlockedCategoriesCache(): void {
 		localStorage.removeItem(CACHE_KEY);
 	} catch {
 		// Ignore errors
+	}
+}
+
+// Get the category for a single article
+export async function getArticleCategory(title: string): Promise<string | null> {
+	if (!browser) return null;
+
+	const supabase = getSupabaseSafe();
+	if (!supabase) return null;
+
+	try {
+		// Use a dummy blocked category to trigger classification
+		const { data, error } = await supabase.functions.invoke('check-article-categories', {
+			body: {
+				titles: [title],
+				blockedCategories: ['__dummy__'] // Won't match anything, but will classify
+			}
+		});
+
+		if (error) {
+			console.error('Error getting article category:', error);
+			return null;
+		}
+
+		const categories: CategoriesMap = data?.categories || {};
+		return categories[title] || categories[title.replace(/ /g, '_')] || null;
+	} catch (err) {
+		console.error('Error calling check-article-categories:', err);
+		return null;
 	}
 }
