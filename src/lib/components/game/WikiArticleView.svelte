@@ -101,10 +101,11 @@
 
 		if (linkTitles.length === 0) return;
 
-		// Show progress bar
+		// Show progress bar and pause timer
 		isCheckingLinks = true;
 		totalLinks = linkTitles.length;
 		checkedLinks = 0;
+		onLoadingChange?.(true); // Pause timer while checking
 
 		// Process ALL batches in parallel for speed
 		const BATCH_SIZE = 50;
@@ -129,6 +130,7 @@
 		// Check if still the same article
 		if (title !== currentlyLoadedTitle || !containerRef) {
 			isCheckingLinks = false;
+			onLoadingChange?.(false); // Resume timer
 			return;
 		}
 
@@ -137,8 +139,9 @@
 			Object.assign(allBlockedLinks, result);
 		}
 
-		// Hide progress bar
+		// Hide progress bar and resume timer
 		isCheckingLinks = false;
+		onLoadingChange?.(false);
 
 		// Apply styles to blocked links via DOM manipulation
 		for (const [linkTitle, blockedCategory] of Object.entries(allBlockedLinks)) {
