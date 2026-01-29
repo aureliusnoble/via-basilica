@@ -17,9 +17,17 @@ function createSupabaseClient(): SupabaseClient | null {
 		return null;
 	}
 	try {
-		// Use createBrowserClient from @supabase/ssr for CSP-friendly auth
-		const client = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY);
-		console.log('[Supabase] Client created successfully');
+		// Use createBrowserClient from @supabase/ssr with implicit flow
+		// to avoid PKCE which may use eval() for code challenge generation
+		const client = createBrowserClient(PUBLIC_SUPABASE_URL, PUBLIC_SUPABASE_ANON_KEY, {
+			auth: {
+				flowType: 'implicit',
+				detectSessionInUrl: true,
+				persistSession: true,
+				autoRefreshToken: true
+			}
+		});
+		console.log('[Supabase] Client created successfully (implicit flow)');
 		return client;
 	} catch (error) {
 		console.error('[Supabase] Failed to create client:', error);
