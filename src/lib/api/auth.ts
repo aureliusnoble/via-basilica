@@ -1,12 +1,11 @@
 import { browser } from '$app/environment';
+import { base } from '$app/paths';
 import { supabase } from './supabase.js';
 
-// Helper to build redirect URL without double slashes
+// Helper to build redirect URL
 function getRedirectUrl(path: string): string {
-	const baseUrl = import.meta.env.BASE_URL;
-	const basePath = (baseUrl || '').replace(/\/$/, '');
-	const redirectUrl = `${window.location.origin}${basePath}${path}`;
-	console.log('[Auth] Building redirect URL:', { baseUrl, basePath, origin: window.location.origin, path, redirectUrl });
+	const redirectUrl = `${window.location.origin}${base}${path}`;
+	console.log('[Auth] Building redirect URL:', { base, origin: window.location.origin, path, redirectUrl });
 	return redirectUrl;
 }
 
