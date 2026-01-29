@@ -7,6 +7,7 @@
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { getArchiveChallenges } from '$lib/api/challenges.js';
 	import { formatDate } from '$lib/utils/date-helpers.js';
+	import { BLOCKED_CATEGORY_COLORS } from '$lib/utils/blocked-categories.js';
 	import type { DailyChallenge } from '$lib/types/database.js';
 
 	let challenges = $state<DailyChallenge[]>([]);
@@ -54,6 +55,14 @@
 								<p class="font-medium text-gold">
 									{challenge.start_article.replace(/_/g, ' ')}
 								</p>
+								{#if challenge.blocked_categories && challenge.blocked_categories.length > 0}
+									<div class="flex items-center gap-1 mt-1">
+										<span class="text-xs text-text-dark-muted">Blocked:</span>
+										{#each challenge.blocked_categories as cat}
+											<span class="text-xs" title={cat}>{BLOCKED_CATEGORY_COLORS[cat] || '🚫'}</span>
+										{/each}
+									</div>
+								{/if}
 							</div>
 							<svg class="w-5 h-5 text-text-dark-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
 								<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />

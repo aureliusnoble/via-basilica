@@ -3,6 +3,28 @@ import { corsHeaders } from '../_shared/cors.ts';
 import { getSupabaseAdmin } from '../_shared/supabase-client.ts';
 import { fetchRandomArticles, fetchArticleInfo } from '../_shared/wikipedia-api.ts';
 
+// Categories that can be blocked during daily challenges
+const BLOCKABLE_CATEGORIES = [
+	'Religion',
+	'History',
+	'People',
+	'Philosophy',
+	'Culture',
+	'Education',
+	'Society',
+	'Geography',
+	'Humanities',
+	'Language',
+	'Government',
+	'Law'
+];
+
+function selectBlockedCategories(): string[] {
+	const count = Math.floor(Math.random() * 3) + 1; // 1-3 categories
+	const shuffled = [...BLOCKABLE_CATEGORIES].sort(() => Math.random() - 0.5);
+	return shuffled.slice(0, count);
+}
+
 serve(async (req) => {
 	// Handle CORS preflight
 	if (req.method === 'OPTIONS') {
@@ -74,6 +96,9 @@ serve(async (req) => {
 			});
 		}
 
+		// Select blocked categories for this challenge
+		const blockedCategories = selectBlockedCategories();
+
 		// Insert the challenge
 		const { data, error } = await supabase
 			.from('daily_challenges')
@@ -81,7 +106,8 @@ serve(async (req) => {
 				challenge_date: targetDate,
 				start_article: selectedArticle.title,
 				start_article_url: `https://en.wikipedia.org/wiki/${encodeURIComponent(selectedArticle.title.replace(/ /g, '_'))}`,
-				article_length: selectedArticle.length
+				article_length: selectedArticle.length,
+				blocked_categories: blockedCategories
 			})
 			.select()
 			.single();

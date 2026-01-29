@@ -161,6 +161,25 @@ export async function getTodaysResult(userId: string, challengeId?: number): Pro
 	return data;
 }
 
+export async function getArchiveResult(userId: string, challengeId: number): Promise<GameResult | null> {
+	const supabase = getSupabase();
+
+	const { data, error } = await supabase
+		.from('game_results')
+		.select('*')
+		.eq('user_id', userId)
+		.eq('mode', 'archive')
+		.eq('challenge_id', challengeId)
+		.maybeSingle();
+
+	if (error) {
+		console.error('Error fetching archive result:', error);
+		return null;
+	}
+
+	return data;
+}
+
 export async function getUserGameHistory(userId: string, limit: number = 20): Promise<GameResult[]> {
 	const supabase = getSupabase();
 

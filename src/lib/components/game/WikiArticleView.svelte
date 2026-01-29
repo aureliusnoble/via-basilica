@@ -1,16 +1,25 @@
 <script lang="ts">
 	import Spinner from '$lib/components/ui/Spinner.svelte';
-	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
+	import { fetchArticleHtml, fetchRawArticleHtml, extractLinkTitles } from '$lib/api/wikipedia.js';
+	import { checkBlockedLinks, type BlockedLinksMap } from '$lib/api/blocked-categories.js';
 
 	interface Props {
 		articleTitle: string;
 		onNavigate: (title: string) => void;
+		blockedCategories?: string[];
 		previewMode?: boolean;
 		onPreviewClick?: (title: string) => void;
 		onLoadingChange?: (loading: boolean) => void;
 	}
 
-	let { articleTitle, onNavigate, previewMode = false, onPreviewClick, onLoadingChange }: Props = $props();
+	let {
+		articleTitle,
+		onNavigate,
+		blockedCategories = [],
+		previewMode = false,
+		onPreviewClick,
+		onLoadingChange
+	}: Props = $props();
 
 	let content = $state('');
 	let loading = $state(true);
@@ -32,14 +41,55 @@
 		onLoadingChange?.(true);
 
 		try {
-			const article = await fetchArticleHtml(title);
-			// Only update if this is still the article we want
-			if (title === currentlyLoadedTitle) {
+			// If we have blocked categories, we need to do a two-step process:
+			// 1. Fetch raw HTML and extract link titles
+			// 2. Check which links are blocked
+			// 3. Re-process HTML with blocked links map
+			if (blockedCategories.length > 0) {
+				// Fetch raw HTML
+				const rawHtml = await fetchRawArticleHtml(title);
+
+				// Only update if this is still the article we want
+				if (title !== currentlyLoadedTitle) return;
+
+				// Extract link titles
+				const linkTitles = extractLinkTitles(rawHtml);
+
+				// Check blocked links in background (show article immediately)
+				const article = await fetchArticleHtml(title);
+				if (title !== currentlyLoadedTitle) return;
+
 				content = article.html;
 
 				// Scroll to top
 				if (containerRef) {
 					containerRef.scrollTop = 0;
+				}
+
+				// Now check blocked categories and re-process if needed
+				if (linkTitles.length > 0) {
+					const blockedLinksMap = await checkBlockedLinks(linkTitles, blockedCategories);
+
+					// Only update if still the same article and we have blocked links
+					if (title === currentlyLoadedTitle && Object.keys(blockedLinksMap).length > 0) {
+						// Re-fetch with blocked links map
+						const articleWithBlocked = await fetchArticleHtml(title, blockedLinksMap);
+						if (title === currentlyLoadedTitle) {
+							content = articleWithBlocked.html;
+						}
+					}
+				}
+			} else {
+				// No blocked categories - simple path
+				const article = await fetchArticleHtml(title);
+				// Only update if this is still the article we want
+				if (title === currentlyLoadedTitle) {
+					content = article.html;
+
+					// Scroll to top
+					if (containerRef) {
+						containerRef.scrollTop = 0;
+					}
 				}
 			}
 		} catch (err) {
@@ -56,6 +106,15 @@
 
 	function handleClick(e: MouseEvent) {
 		const target = e.target as HTMLElement;
+
+		// Check for blocked links first
+		const blockedLink = target.closest('a[data-blocked-category]');
+		if (blockedLink) {
+			e.preventDefault();
+			// Blocked link - do nothing
+			return;
+		}
+
 		const link = target.closest('a[data-wiki-link]');
 
 		if (link) {
@@ -75,6 +134,13 @@
 	function handleKeyDown(e: KeyboardEvent) {
 		if (e.key === 'Enter' || e.key === ' ') {
 			const target = e.target as HTMLElement;
+
+			// Check for blocked links first
+			if (target.matches('a[data-blocked-category]')) {
+				e.preventDefault();
+				return;
+			}
+
 			if (target.matches('a[data-wiki-link]')) {
 				e.preventDefault();
 				const title = target.getAttribute('data-wiki-title');

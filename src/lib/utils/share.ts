@@ -1,21 +1,79 @@
 import type { PathStep } from '$lib/types/database.js';
 import { formatDate, formatDuration } from './date-helpers.js';
+import { formatBlockedCategoriesForShare } from './blocked-categories.js';
 
-type Category = 'H' | 'R' | 'G' | 'S' | 'A' | 'P' | '*';
+// Expanded category types to match blocked categories
+type Category =
+	| 'Religion'
+	| 'History'
+	| 'People'
+	| 'Philosophy'
+	| 'Culture'
+	| 'Education'
+	| 'Society'
+	| 'Geography'
+	| 'Humanities'
+	| 'Language'
+	| 'Government'
+	| 'Law'
+	| '*';
 
 // Colored squares for each category
 const CATEGORY_COLORS: Record<Category, string> = {
-	H: '🟫', // History - brown
-	R: '🟣', // Religion - purple
-	G: '🟢', // Geography - green
-	S: '🔵', // Science - blue
-	A: '🟡', // Art - yellow
-	P: '🔴', // Politics - red
+	Religion: '🟣',
+	History: '🟫',
+	People: '🔴',
+	Philosophy: '🟡',
+	Culture: '🟠',
+	Education: '📘',
+	Society: '🔵',
+	Geography: '🟢',
+	Humanities: '📙',
+	Language: '📗',
+	Government: '⬛',
+	Law: '⬜',
 	'*': '⬜' // Other - white
 };
 
+// Category names for legend
+const CATEGORY_NAMES: Record<Category, string> = {
+	Religion: 'Religion',
+	History: 'History',
+	People: 'People',
+	Philosophy: 'Philosophy',
+	Culture: 'Culture',
+	Education: 'Education',
+	Society: 'Society',
+	Geography: 'Geography',
+	Humanities: 'Humanities',
+	Language: 'Language',
+	Government: 'Government',
+	Law: 'Law',
+	'*': 'Other'
+};
+
 const CATEGORY_KEYWORDS: Record<Category, string[]> = {
-	H: [
+	Religion: [
+		'church',
+		'saint',
+		'bishop',
+		'christian',
+		'orthodox',
+		'catholic',
+		'theology',
+		'priest',
+		'muslim',
+		'buddhist',
+		'jewish',
+		'religion',
+		'religious',
+		'monastery',
+		'pope',
+		'god',
+		'jesus',
+		'bible'
+	],
+	History: [
 		'empire',
 		'ancient',
 		'war',
@@ -25,83 +83,73 @@ const CATEGORY_KEYWORDS: Record<Category, string[]> = {
 		'kingdom',
 		'roman',
 		'byzantine',
-		'history',
 		'battle',
-		'civilization'
+		'civilization',
+		'history',
+		'historical'
 	],
-	R: [
-		'church',
-		'saint',
-		'bishop',
-		'christian',
-		'orthodox',
-		'catholic',
-		'pope',
-		'monastery',
-		'theology',
-		'religion',
-		'god',
-		'jesus',
-		'bible',
-		'priest'
+	People: [
+		'born',
+		'died',
+		'people',
+		'person',
+		'living',
+		'deaths',
+		'births',
+		'politician',
+		'writer',
+		'artist',
+		'scientist'
 	],
-	G: [
+	Philosophy: ['philosophy', 'philosopher', 'epistemology', 'metaphysics', 'ethics', 'logic'],
+	Culture: [
+		'culture',
+		'cultural',
+		'tradition',
+		'customs',
+		'festival',
+		'ceremony',
+		'folklore',
+		'mythology'
+	],
+	Education: [
+		'university',
+		'school',
+		'college',
+		'education',
+		'academic',
+		'student',
+		'professor',
+		'alumni'
+	],
+	Society: ['society', 'social', 'community', 'organization', 'movement', 'group'],
+	Geography: [
 		'city',
 		'country',
 		'river',
 		'region',
 		'mountain',
 		'island',
-		'continent',
 		'capital',
 		'province',
-		'geography',
 		'ocean',
 		'sea',
-		'lake'
+		'lake',
+		'geography'
 	],
-	S: [
-		'theory',
-		'physics',
-		'chemistry',
-		'biology',
-		'mathematics',
-		'scientist',
-		'experiment',
-		'science',
-		'atom',
-		'cell',
-		'evolution',
-		'quantum'
+	Humanities: ['humanities', 'arts', 'literature', 'linguistics'],
+	Language: ['language', 'linguistic', 'grammar', 'vocabulary', 'dialect', 'writing'],
+	Government: [
+		'government',
+		'politics',
+		'political',
+		'ministry',
+		'parliament',
+		'congress',
+		'democracy',
+		'election'
 	],
-	A: [
-		'painting',
-		'music',
-		'artist',
-		'composer',
-		'literature',
-		'author',
-		'poet',
-		'novel',
-		'art',
-		'sculpture',
-		'opera',
-		'symphony',
-		'film'
-	],
-	P: [
-		'politician',
-		'emperor',
-		'king',
-		'queen',
-		'president',
-		'leader',
-		'minister',
-		'general',
-		'ruler',
-		'monarch',
-		'dictator'
-	],
+	Law: ['law', 'legal', 'court', 'judge', 'attorney', 'legislation', 'constitution', 'crime'],
 	'*': [] // fallback, no keywords
 };
 
@@ -128,7 +176,8 @@ export function generateShareText(
 	startArticle: string,
 	path: PathStep[],
 	challengeDate: Date | string,
-	mode: 'daily' | 'random' | 'archive' = 'daily'
+	mode: 'daily' | 'random' | 'archive' = 'daily',
+	blockedCategories: string[] = []
 ): string {
 	const dateStr = formatDate(challengeDate);
 	const timeStr = formatDuration(durationSeconds);
@@ -157,6 +206,13 @@ export function generateShareText(
 		categoryChain = `${first}...${last}`;
 	}
 
+	// Generate legend for unique categories that appeared in the journey
+	const uniqueCategories = [...new Set(categories)].filter((cat) => cat !== '*');
+	const legend =
+		uniqueCategories.length > 0
+			? uniqueCategories.map((cat) => `${CATEGORY_COLORS[cat]}=${CATEGORY_NAMES[cat]}`).join(' ')
+			: '';
+
 	// Title based on mode
 	const title =
 		mode === 'random'
@@ -164,6 +220,9 @@ export function generateShareText(
 			: mode === 'archive'
 				? `Via Basilica Archive #${challengeNumber}`
 				: `Via Basilica #${challengeNumber}`;
+
+	// Blocked categories line
+	const blockedLine = formatBlockedCategoriesForShare(blockedCategories);
 
 	// Generate shareable URL
 	let shareUrl: string;
@@ -175,14 +234,36 @@ export function generateShareText(
 		shareUrl = 'aureliusnoble.github.io/via-basilica';
 	}
 
-	return `${title}
-${dateStr}
+	// Build share text in order:
+	// 1. Title and date
+	// 2. Start -> Target
+	// 3. Blocked categories (if any)
+	// 4. Category chain
+	// 5. Hops and time
+	// 6. Legend (if any)
+	// 7. URL
+	const lines = [
+		title,
+		dateStr,
+		'',
+		`${start} → ${targetArticle}`
+	];
 
-${start} → ${targetArticle}
-${categoryChain}
-${hops} hops | ${timeStr}
+	if (blockedLine) {
+		lines.push(blockedLine);
+	}
 
-${shareUrl}`;
+	lines.push(categoryChain);
+	lines.push(`${hops} hops | ${timeStr}`);
+
+	if (legend) {
+		lines.push(legend);
+	}
+
+	lines.push('');
+	lines.push(shareUrl);
+
+	return lines.join('\n');
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {
@@ -216,7 +297,8 @@ export async function shareResult(
 	startArticle: string,
 	path: PathStep[],
 	challengeDate: Date | string,
-	mode: 'daily' | 'random' | 'archive' = 'daily'
+	mode: 'daily' | 'random' | 'archive' = 'daily',
+	blockedCategories: string[] = []
 ): Promise<boolean> {
 	const text = generateShareText(
 		challengeNumber,
@@ -225,7 +307,8 @@ export async function shareResult(
 		startArticle,
 		path,
 		challengeDate,
-		mode
+		mode,
+		blockedCategories
 	);
 
 	// Try native share if available

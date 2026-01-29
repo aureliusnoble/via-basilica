@@ -6,6 +6,7 @@ import type {
 	WikipediaExtract,
 	WikipediaLinksResponse
 } from '$lib/types/wikipedia.js';
+import type { BlockedLinksMap } from './blocked-categories.js';
 
 const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
 const WIKIPEDIA_REST = 'https://en.wikipedia.org/api/rest_v1';
@@ -37,7 +38,10 @@ const STRIP_SELECTORS = [
 // Target article
 export const TARGET_ARTICLE = 'Basil_of_Caesarea';
 
-export async function fetchArticleHtml(title: string): Promise<WikipediaArticle> {
+export async function fetchArticleHtml(
+	title: string,
+	blockedLinksMap?: BlockedLinksMap
+): Promise<WikipediaArticle> {
 	const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'));
 	const response = await fetch(`${WIKIPEDIA_REST}/page/html/${encodedTitle}`);
 
@@ -46,7 +50,7 @@ export async function fetchArticleHtml(title: string): Promise<WikipediaArticle>
 	}
 
 	const rawHtml = await response.text();
-	const processedHtml = processWikipediaHtml(rawHtml, title);
+	const processedHtml = processWikipediaHtml(rawHtml, title, blockedLinksMap);
 
 	return {
 		title: title.replace(/_/g, ' '),
@@ -54,7 +58,11 @@ export async function fetchArticleHtml(title: string): Promise<WikipediaArticle>
 	};
 }
 
-function processWikipediaHtml(html: string, currentTitle: string): string {
+function processWikipediaHtml(
+	html: string,
+	currentTitle: string,
+	blockedLinksMap?: BlockedLinksMap
+): string {
 	const parser = new DOMParser();
 	const doc = parser.parseFromString(html, 'text/html');
 
@@ -86,6 +94,15 @@ function processWikipediaHtml(html: string, currentTitle: string): string {
 			) {
 				link.removeAttribute('href');
 				link.classList.add('wiki-disabled-link');
+				return;
+			}
+
+			// Check if this link is blocked
+			const blockedCategory = blockedLinksMap?.[linkedTitle] || blockedLinksMap?.[linkedTitle.replace(/_/g, ' ')];
+			if (blockedCategory) {
+				link.removeAttribute('href');
+				link.setAttribute('data-blocked-category', blockedCategory);
+				link.classList.add('wiki-blocked-link');
 				return;
 			}
 
@@ -128,7 +145,7 @@ function processWikipediaHtml(html: string, currentTitle: string): string {
 
 	// Sanitize
 	const sanitized = DOMPurify.sanitize(doc.body.innerHTML, {
-		ADD_ATTR: ['data-wiki-link', 'data-wiki-title', 'loading', 'target', 'rel'],
+		ADD_ATTR: ['data-wiki-link', 'data-wiki-title', 'data-blocked-category', 'loading', 'target', 'rel'],
 		ADD_TAGS: ['section', 'figure', 'figcaption'],
 		FORBID_TAGS: ['script', 'style', 'iframe', 'object', 'embed'],
 		FORBID_ATTR: ['onerror', 'onload', 'onclick', 'onmouseover']
@@ -285,4 +302,58 @@ const TARGET_ALIASES = [
 export function isTargetArticle(title: string): boolean {
 	const normalized = title.replace(/ /g, '_').toLowerCase();
 	return TARGET_ALIASES.includes(normalized);
+}
+
+// Extract all link titles from raw Wikipedia HTML (before processing)
+export function extractLinkTitles(html: string): string[] {
+	const parser = new DOMParser();
+	const doc = parser.parseFromString(html, 'text/html');
+
+	const titles: string[] = [];
+	const seen = new Set<string>();
+
+	doc.querySelectorAll('a[rel="mw:WikiLink"]').forEach((link) => {
+		const href = link.getAttribute('href');
+		if (!href) return;
+
+		const titleMatch = href.match(/^\.\/(.+)$/);
+		if (titleMatch) {
+			const linkedTitle = decodeURIComponent(titleMatch[1]);
+
+			// Skip special namespaces
+			if (
+				linkedTitle.includes(':') &&
+				(linkedTitle.startsWith('Category:') ||
+					linkedTitle.startsWith('File:') ||
+					linkedTitle.startsWith('Wikipedia:') ||
+					linkedTitle.startsWith('Help:') ||
+					linkedTitle.startsWith('Template:') ||
+					linkedTitle.startsWith('Portal:') ||
+					linkedTitle.startsWith('Special:'))
+			) {
+				return;
+			}
+
+			// Normalize and dedupe
+			const normalized = linkedTitle.replace(/_/g, ' ');
+			if (!seen.has(normalized)) {
+				seen.add(normalized);
+				titles.push(normalized);
+			}
+		}
+	});
+
+	return titles;
+}
+
+// Fetch raw article HTML without processing (for extracting link titles)
+export async function fetchRawArticleHtml(title: string): Promise<string> {
+	const encodedTitle = encodeURIComponent(title.replace(/ /g, '_'));
+	const response = await fetch(`${WIKIPEDIA_REST}/page/html/${encodedTitle}`);
+
+	if (!response.ok) {
+		throw new Error(`Failed to fetch article: ${response.statusText}`);
+	}
+
+	return response.text();
 }

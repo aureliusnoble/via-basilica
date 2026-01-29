@@ -2,11 +2,12 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import Badge from '$lib/components/ui/Badge.svelte';
-	import { MapPin, Circle, MoreHorizontal } from 'lucide-svelte';
+	import { MapPin, Circle, MoreHorizontal, Ban } from 'lucide-svelte';
 	import type { PathStep } from '$lib/types/database.js';
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { shareResult } from '$lib/utils/share.js';
 	import { getLevelTitle, getXpProgress, LEVEL_TITLES } from '$lib/utils/constants.js';
+	import { BLOCKED_CATEGORY_COLORS, BLOCKED_CATEGORY_NAMES } from '$lib/utils/blocked-categories.js';
 	import { toast } from 'svelte-sonner';
 
 	interface Props {
@@ -18,6 +19,7 @@
 		startArticle: string;
 		challengeDate: string | Date;
 		mode?: 'daily' | 'random' | 'archive';
+		blockedCategories?: string[];
 		pointsAwarded?: number;
 		xpEarned?: number;
 		previousXp?: number;
@@ -36,6 +38,7 @@
 		startArticle,
 		challengeDate,
 		mode = 'daily',
+		blockedCategories = [],
 		pointsAwarded = 0,
 		xpEarned = 0,
 		previousXp = 0,
@@ -93,7 +96,8 @@
 				startArticle,
 				path,
 				challengeDate,
-				mode
+				mode,
+				blockedCategories
 			);
 			if (success) {
 				toast.success('Copied to clipboard!');
@@ -133,6 +137,24 @@
 				<p class="text-sm text-text-dark-muted">Time</p>
 			</div>
 		</div>
+
+		<!-- Blocked categories (if any) -->
+		{#if blockedCategories.length > 0}
+			<div class="mb-6">
+				<div class="flex items-center justify-center gap-2 text-sm text-text-dark-muted mb-2">
+					<Ban size={14} class="text-error" />
+					<span>Blocked Categories</span>
+				</div>
+				<div class="flex flex-wrap justify-center gap-1.5">
+					{#each blockedCategories as category}
+						<span class="inline-flex items-center gap-1 px-2 py-1 bg-bg-dark-tertiary rounded text-xs">
+							<span>{BLOCKED_CATEGORY_COLORS[category] || '🚫'}</span>
+							<span>{BLOCKED_CATEGORY_NAMES[category] || category}</span>
+						</span>
+					{/each}
+				</div>
+			</div>
+		{/if}
 
 		<!-- Rewards -->
 		{#if pointsAwarded > 0 || xpEarned > 0}

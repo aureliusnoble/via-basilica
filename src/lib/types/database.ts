@@ -19,6 +19,7 @@ export interface DailyChallenge {
 	target_article: string;
 	article_length: number;
 	article_quality: string | null;
+	blocked_categories: string[];
 	created_at: string;
 }
 

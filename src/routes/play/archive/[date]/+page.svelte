@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from 'svelte';
 	import { goto } from '$app/navigation';
+	import { page } from '$app/stores';
 	import { base } from '$app/paths';
 	import { Check } from 'lucide-svelte';
 	import Spinner from '$lib/components/ui/Spinner.svelte';
@@ -21,11 +22,12 @@
 		pauseTimer,
 		resumeTimer
 	} from '$lib/state/game.svelte.js';
-	import { getTodaysChallenge } from '$lib/api/challenges.js';
-	import { getTodaysResult, completeGameResult, createGameResult, getUserDailyRank, awardXp } from '$lib/api/game-results.js';
+	import { getChallengeByDate } from '$lib/api/challenges.js';
+	import { getArchiveResult, completeGameResult, createGameResult, awardXp } from '$lib/api/game-results.js';
 	import { calculateXp } from '$lib/utils/xp-calculator.js';
 	import { refreshProfile } from '$lib/state/auth.svelte.js';
 	import { isTargetArticle } from '$lib/api/wikipedia.js';
+	import { formatDate } from '$lib/utils/date-helpers.js';
 	import { toast } from 'svelte-sonner';
 	import type { DailyChallenge, GameResult } from '$lib/types/database.js';
 
@@ -39,24 +41,30 @@
 	let elapsedSeconds = $state(0);
 	let timerInterval = $state<ReturnType<typeof setInterval> | null>(null);
 	let gameResultId = $state<string | null>(null);
-	let playerRank = $state<number | null>(null);
 	let xpEarned = $state(0);
 	let previousXp = $state(0);
 
 	onMount(async () => {
+		const dateParam = $page.params.date;
+		if (!dateParam) {
+			toast.error('Invalid date');
+			goto(`${base}/play/archive`);
+			return;
+		}
+
 		try {
-			// Load challenge
-			challenge = await getTodaysChallenge();
+			// Load challenge by date
+			challenge = await getChallengeByDate(dateParam);
 
 			if (!challenge) {
-				toast.error('No daily challenge available');
-				goto(`${base}/`);
+				toast.error('Challenge not found');
+				goto(`${base}/play/archive`);
 				return;
 			}
 
 			// Check for existing result
 			if (auth.user && challenge) {
-				existingResult = await getTodaysResult(auth.user.id, challenge.id);
+				existingResult = await getArchiveResult(auth.user.id, challenge.id);
 				if (existingResult?.completed_at) {
 					// Already completed
 					loading = false;
@@ -66,7 +74,7 @@
 
 			// Try to resume from storage
 			const resumed = loadFromStorage();
-			if (resumed && game.state?.challengeId === challenge.id) {
+			if (resumed && game.state?.challengeId === challenge.id && game.state?.mode === 'archive') {
 				// Resume game
 				startTimer();
 				// Check if we're already on the target article
@@ -78,7 +86,7 @@
 				await startNewGame();
 			}
 		} catch (error) {
-			console.error('Error loading daily challenge:', error);
+			console.error('Error loading archive challenge:', error);
 			toast.error('Failed to load challenge');
 		} finally {
 			loading = false;
@@ -103,14 +111,14 @@
 
 		// Create game result in database
 		if (auth.user) {
-			const result = await createGameResult(auth.user.id, 'daily', challenge.start_article, challenge.id);
+			const result = await createGameResult(auth.user.id, 'archive', challenge.start_article, challenge.id);
 			if (result) {
 				gameResultId = result.id;
 			}
 		}
 
 		// Start local game state
-		startGame('daily', challenge.start_article, challenge.id);
+		startGame('archive', challenge.start_article, challenge.id);
 		startTimer();
 	}
 
@@ -143,19 +151,14 @@
 					finalDuration
 				);
 
-				// Calculate and award XP immediately (based on hops)
+				// Calculate and award XP (archive games earn 50%)
 				if (auth.user) {
-					const xpBreakdown = calculateXp('daily', game.state.hops);
+					const xpBreakdown = calculateXp('archive', game.state.hops);
 					xpEarned = xpBreakdown.total;
 					await awardXp(auth.user.id, xpEarned);
 
 					// Refresh profile to get updated XP/level
 					await refreshProfile();
-				}
-
-				// Fetch player's rank on the leaderboard
-				if (auth.user && challenge) {
-					playerRank = await getUserDailyRank(auth.user.id, challenge.id);
 				}
 			} catch (error) {
 				console.error('Error completing game:', error);
@@ -167,7 +170,7 @@
 
 	function handleVictoryClose() {
 		endGame();
-		goto(`${base}/`);
+		goto(`${base}/play/archive`);
 	}
 
 	function handleLoadingChange(isLoading: boolean) {
@@ -180,7 +183,7 @@
 </script>
 
 <svelte:head>
-	<title>Daily Challenge - Via Basilica</title>
+	<title>Archive Challenge - Via Basilica</title>
 </svelte:head>
 
 {#if loading}
@@ -195,7 +198,7 @@
 				<Check size={40} class="text-success" />
 			</div>
 			<h1 class="text-2xl font-serif text-gold mb-2">Challenge Complete!</h1>
-			<p class="text-text-dark-muted mb-6">You've already completed today's challenge</p>
+			<p class="text-text-dark-muted mb-6">You've already completed this archive challenge</p>
 
 			<Card class="text-left mb-6">
 				<div class="grid grid-cols-2 gap-4">
@@ -213,7 +216,7 @@
 			</Card>
 
 			<div class="space-y-3">
-				<Button href="{base}/leaderboard" class="w-full">View Leaderboard</Button>
+				<Button href="{base}/play/archive" class="w-full">Back to Archive</Button>
 				<Button href="{base}/" variant="secondary" class="w-full">Back to Home</Button>
 			</div>
 		</div>
@@ -224,6 +227,7 @@
 		hops={game.hops}
 		{elapsedSeconds}
 		blockedCategories={challenge.blocked_categories || []}
+		backHref="/play/archive"
 	/>
 
 	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} />
@@ -243,9 +247,8 @@
 		challengeNumber={challenge.id}
 		startArticle={challenge.start_article}
 		challengeDate={challenge.challenge_date}
-		mode="daily"
+		mode="archive"
 		blockedCategories={challenge.blocked_categories || []}
-		rank={playerRank}
 		{xpEarned}
 		{previousXp}
 		userLevel={auth.profile?.level}
@@ -257,7 +260,7 @@
 	<main class="max-w-lg mx-auto px-4 py-6">
 		<div class="text-center py-12">
 			<p class="text-text-dark-muted mb-4">Something went wrong</p>
-			<Button href="{base}/" variant="secondary">Back to Play</Button>
+			<Button href="{base}/play/archive" variant="secondary">Back to Archive</Button>
 		</div>
 	</main>
 {/if}
