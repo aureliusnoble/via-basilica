@@ -15,7 +15,7 @@
 	import { formatDuration } from '$lib/utils/date-helpers.js';
 	import { getLevelTitle } from '$lib/utils/constants.js';
 	import { format } from 'date-fns';
-	import type { LeaderboardEntry, PathStep } from '$lib/types/database.js';
+	import type { LeaderboardEntry } from '$lib/types/database.js';
 	import { getAuthState } from '$lib/state/auth.svelte.js';
 
 	type DisplayEntry = { type: 'entry'; entry: LeaderboardEntry; rank: number } | { type: 'ellipsis' };
