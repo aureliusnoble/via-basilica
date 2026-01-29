@@ -1,0 +1,258 @@
+@import 'tailwindcss';
+
+/* Byzantine Modern Theme */
+@theme {
+	/* Brand Colors */
+	--color-gold: #D4AF37;
+	--color-gold-light: #E5C76B;
+	--color-gold-dark: #B8960F;
+	--color-crimson: #8B1A1A;
+	--color-crimson-light: #A52A2A;
+	--color-crimson-dark: #6B0F0F;
+
+	/* Dark mode colors */
+	--color-bg-dark: #0F0E0C;
+	--color-bg-dark-secondary: #1A1918;
+	--color-bg-dark-tertiary: #252422;
+	--color-text-dark: #E8E6E3;
+	--color-text-dark-muted: #A8A6A3;
+
+	/* Light mode colors */
+	--color-bg-light: #FAFAF8;
+	--color-bg-light-secondary: #F0F0EC;
+	--color-bg-light-tertiary: #E5E5E0;
+	--color-text-light: #1A1918;
+	--color-text-light-muted: #6B6966;
+
+	/* Semantic colors */
+	--color-success: #22C55E;
+	--color-error: #EF4444;
+	--color-warning: #F59E0B;
+
+	/* Fonts */
+	--font-sans: 'Inter', system-ui, -apple-system, sans-serif;
+	--font-serif: 'Crimson Text', Georgia, serif;
+}
+
+/* CSS Custom Properties for current theme */
+:root {
+	--bg-primary: var(--color-bg-dark);
+	--bg-secondary: var(--color-bg-dark-secondary);
+	--bg-tertiary: var(--color-bg-dark-tertiary);
+	--text-primary: var(--color-text-dark);
+	--text-muted: var(--color-text-dark-muted);
+}
+
+html.light {
+	--bg-primary: var(--color-bg-light);
+	--bg-secondary: var(--color-bg-light-secondary);
+	--bg-tertiary: var(--color-bg-light-tertiary);
+	--text-primary: var(--color-text-light);
+	--text-muted: var(--color-text-light-muted);
+}
+
+/* Base styles */
+html {
+	font-family: var(--font-sans);
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+body {
+	background-color: var(--bg-primary);
+	color: var(--text-primary);
+	min-height: 100vh;
+	transition: background-color 0.2s, color 0.2s;
+}
+
+/* Override Tailwind classes for theme-aware colors */
+.bg-bg-dark { background-color: var(--bg-primary); }
+.bg-bg-dark-secondary { background-color: var(--bg-secondary); }
+.bg-bg-dark-tertiary { background-color: var(--bg-tertiary); }
+.text-text-dark { color: var(--text-primary); }
+.text-text-dark-muted { color: var(--text-muted); }
+.border-bg-dark-tertiary { border-color: var(--bg-tertiary); }
+
+/* Fluid typography for Wikipedia content */
+.wiki-content {
+	font-size: clamp(0.95rem, 2.5vw, 1.05rem);
+	line-height: 1.7;
+}
+
+.wiki-content h1,
+.wiki-content h2,
+.wiki-content h3,
+.wiki-content h4 {
+	font-family: var(--font-serif);
+	color: var(--color-gold);
+	margin-top: 1.5rem;
+	margin-bottom: 0.75rem;
+}
+
+.wiki-content h1 { font-size: 1.5rem; }
+.wiki-content h2 { font-size: 1.25rem; }
+.wiki-content h3 { font-size: 1.125rem; }
+
+.wiki-content p {
+	margin-bottom: 1rem;
+}
+
+.wiki-content a[data-wiki-link] {
+	color: var(--color-gold);
+	text-decoration: underline;
+	text-decoration-color: rgba(212, 175, 55, 0.3);
+	cursor: pointer;
+	transition: all 0.2s;
+}
+
+.wiki-content a[data-wiki-link]:hover {
+	color: var(--color-gold-light);
+	text-decoration-color: rgba(212, 175, 55, 0.6);
+}
+
+.wiki-content img {
+	max-width: 100%;
+	height: auto;
+	border-radius: 0.5rem;
+	margin: 1rem 0;
+}
+
+.wiki-content table {
+	width: 100%;
+	border-collapse: collapse;
+	margin: 1rem 0;
+}
+
+.wiki-content th,
+.wiki-content td {
+	border: 1px solid var(--bg-tertiary);
+	padding: 0.5rem;
+	text-align: left;
+}
+
+.wiki-content .infobox {
+	float: none;
+	width: 100%;
+	margin-bottom: 1rem;
+	background-color: var(--bg-secondary);
+	border-radius: 0.5rem;
+	padding: 1rem;
+	border: 1px solid var(--bg-tertiary);
+}
+
+@media (min-width: 768px) {
+	.wiki-content .infobox {
+		float: right;
+		width: 20rem;
+		margin-left: 1rem;
+	}
+}
+
+/* Bottom sheet animation */
+.bottom-sheet {
+	position: fixed;
+	inset-inline: 0;
+	bottom: 0;
+	z-index: 50;
+	background-color: var(--bg-secondary);
+	border-top-left-radius: 1rem;
+	border-top-right-radius: 1rem;
+	box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.3);
+	transform: translateY(0);
+	transition: transform 0.3s;
+}
+
+.bottom-sheet.closed {
+	transform: translateY(100%);
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+	position: fixed;
+	inset: 0;
+	z-index: 40;
+	background-color: rgba(0, 0, 0, 0.6);
+	backdrop-filter: blur(4px);
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+	width: 8px;
+	height: 8px;
+}
+
+::-webkit-scrollbar-track {
+	background-color: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+	background-color: var(--bg-tertiary);
+	border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+	background-color: rgba(212, 175, 55, 0.5);
+}
+
+/* Touch target sizing */
+.touch-target {
+	min-width: 3rem;
+	min-height: 3rem;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+}
+
+/* Progress bar */
+.progress-bar {
+	height: 0.75rem;
+	background-color: var(--bg-tertiary);
+	border-radius: 9999px;
+	overflow: hidden;
+}
+
+.progress-bar-fill {
+	height: 100%;
+	background: linear-gradient(to right, var(--color-gold-dark), var(--color-gold));
+	border-radius: 9999px;
+	transition: width 0.5s ease-out;
+}
+
+/* Byzantine decorative elements */
+.byzantine-border {
+	border: 2px solid rgba(212, 175, 55, 0.3);
+	border-radius: 0.5rem;
+	background-image:
+		linear-gradient(to right, var(--color-gold) 1px, transparent 1px),
+		linear-gradient(to bottom, var(--color-gold) 1px, transparent 1px);
+	background-size: 4px 4px;
+	background-position: -1px -1px;
+	background-clip: padding-box;
+}
+
+/* Glow effect for active powerups */
+.powerup-active {
+	animation: pulse 2s infinite;
+	box-shadow: 0 0 0 2px var(--color-gold), 0 0 0 4px var(--bg-primary);
+}
+
+@keyframes pulse {
+	0%, 100% { opacity: 1; }
+	50% { opacity: 0.7; }
+}
+
+/* Safe area for mobile */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+	.safe-bottom {
+		padding-bottom: calc(1rem + env(safe-area-inset-bottom));
+	}
+}
+
+/* Light mode specific overrides */
+html.light .bg-bg-dark\/95 {
+	background-color: rgba(250, 250, 248, 0.95);
+}
+
+html.light .ring-offset-bg-dark {
+	--tw-ring-offset-color: var(--bg-primary);
+}
