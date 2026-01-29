@@ -32,7 +32,7 @@ export interface GameResult {
 	start_article: string;
 	hops: number;
 	path: PathStep[];
-	powerups_used: PowerupUsage[];
+	powerups_used: any[];
 	started_at: string;
 	completed_at: string | null;
 	duration_seconds: number | null;
@@ -58,36 +58,6 @@ export interface GamePath {
 	verified: boolean;
 }
 
-export interface PowerupDefinition {
-	id: string;
-	name: string;
-	description: string;
-	icon: string;
-	point_cost: number;
-	category: 'information' | 'navigation' | 'strategic';
-}
-
-export interface PlayerPowerup {
-	user_id: string;
-	powerup_id: string;
-	quantity: number;
-	updated_at: string;
-}
-
-export interface DailyPowerupSelection {
-	id: string;
-	user_id: string;
-	challenge_date: string;
-	slot_1: string | null;
-	slot_2: string | null;
-}
-
-export interface PowerupUsage {
-	powerup_id: string;
-	used_at: string;
-	step_number: number;
-}
-
 export interface LeaderboardEntry {
 	user_id: string;
 	username: string;
@@ -97,7 +67,7 @@ export interface LeaderboardEntry {
 	duration_seconds: number;
 	points_awarded: number;
 	path: PathStep[];
-	powerups_used: PowerupUsage[];
+	powerups_used: any[];
 	slot_1: string | null;
 	slot_2: string | null;
 	// For monthly leaderboards

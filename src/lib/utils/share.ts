@@ -11,17 +11,20 @@ export function generateShareText(
 	const seconds = durationSeconds % 60;
 	const timeStr = `${minutes}:${seconds.toString().padStart(2, '0')}`;
 
-	// Generate path visualization with colored blocks
-	// Using simple blocks since we can't compute category overlap client-side easily
-	const pathBlocks = path.slice(1).map(() => '🟨').join(' ');
+	// Generate path as vertical list of article names
+	const pathList = path.map((step, i) => {
+		if (i === 0) {
+			return step.article_title;
+		}
+		return `→ ${step.article_title}`;
+	}).join('\n');
 
 	return `Via Basilica #${challengeNumber}
 ${hops} hops in ${timeStr}
 
-Start: ${startArticle}
-Path: ${pathBlocks}
+${pathList}
 
-viabasilica.github.io`;
+https://aureliusnoble.github.io/via-basilica/`;
 }
 
 export async function copyToClipboard(text: string): Promise<boolean> {

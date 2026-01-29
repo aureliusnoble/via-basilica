@@ -1,6 +1,6 @@
 import { browser } from '$app/environment';
 import type { GameState, StoredGameState } from '$lib/types/game.js';
-import type { PathStep, PowerupUsage, GameMode } from '$lib/types/database.js';
+import type { PathStep, GameMode } from '$lib/types/database.js';
 import { TARGET_ARTICLE, isTargetArticle } from '$lib/api/wikipedia.js';
 import { format } from 'date-fns';
 
@@ -28,15 +28,6 @@ export function getGameState() {
 		},
 		get currentArticle() {
 			return gameState?.currentArticle || '';
-		},
-		get activePowerup() {
-			return gameState?.activePowerup || null;
-		},
-		get freeStepActive() {
-			return gameState?.freeStepActive || false;
-		},
-		get powerupSlots() {
-			return gameState?.powerupSlots || [null, null];
 		}
 	};
 }
@@ -44,8 +35,7 @@ export function getGameState() {
 export function startGame(
 	mode: GameMode,
 	startArticle: string,
-	challengeId: number | null,
-	powerupSlots: [string | null, string | null] = [null, null]
+	challengeId: number | null
 ) {
 	gameState = {
 		mode,
@@ -64,11 +54,7 @@ export function startGame(
 		hops: 0,
 		startedAt: new Date(),
 		isComplete: false,
-		isPlaying: true,
-		powerupSlots,
-		activePowerup: null,
-		freeStepActive: false,
-		powerupsUsed: []
+		isPlaying: true
 	};
 
 	saveToStorage();
@@ -77,15 +63,13 @@ export function startGame(
 export function navigateTo(articleTitle: string) {
 	if (!gameState || gameState.isComplete) return;
 
-	const isFreeStep = gameState.freeStepActive;
-
 	// Add to path
 	gameState.path = [
 		...gameState.path,
 		{
 			article_title: articleTitle,
 			timestamp: new Date().toISOString(),
-			is_free_step: isFreeStep,
+			is_free_step: false,
 			is_undone: false
 		}
 	];
@@ -93,13 +77,8 @@ export function navigateTo(articleTitle: string) {
 	// Update current article
 	gameState.currentArticle = articleTitle;
 
-	// Increment hops (unless free step)
-	if (!isFreeStep) {
-		gameState.hops++;
-	}
-
-	// Clear free step flag
-	gameState.freeStepActive = false;
+	// Increment hops
+	gameState.hops++;
 
 	// Check for victory - only set isComplete, not isPlaying
 	// isPlaying should remain true so the UI shows the victory modal
@@ -122,7 +101,7 @@ export function undoLastStep(): string | null {
 		i === gameState!.path.length - 1 ? { ...step, is_undone: true } : step
 	);
 
-	// If it wasn't a free step, decrement hops
+	// Decrement hops
 	if (!undoneStep.is_free_step) {
 		gameState.hops = Math.max(0, gameState.hops - 1);
 	}
@@ -134,34 +113,6 @@ export function undoLastStep(): string | null {
 	saveToStorage();
 
 	return previousStep.article_title;
-}
-
-export function activatePowerup(powerupId: string) {
-	if (!gameState) return;
-
-	if (powerupId === 'free-step') {
-		gameState.freeStepActive = true;
-	} else {
-		gameState.activePowerup = powerupId;
-	}
-
-	// Record usage
-	gameState.powerupsUsed = [
-		...gameState.powerupsUsed,
-		{
-			powerup_id: powerupId,
-			used_at: new Date().toISOString(),
-			step_number: gameState.path.length - 1
-		}
-	];
-
-	saveToStorage();
-}
-
-export function clearActivePowerup() {
-	if (!gameState) return;
-	gameState.activePowerup = null;
-	saveToStorage();
 }
 
 export function endGame() {
@@ -187,10 +138,7 @@ function saveToStorage() {
 		currentArticle: gameState.currentArticle,
 		path: gameState.path,
 		hops: gameState.hops,
-		startedAt: gameState.startedAt.toISOString(),
-		powerupSlots: gameState.powerupSlots,
-		freeStepActive: gameState.freeStepActive,
-		powerupsUsed: gameState.powerupsUsed
+		startedAt: gameState.startedAt.toISOString()
 	};
 
 	localStorage.setItem(STORAGE_KEY, JSON.stringify(stored));
@@ -227,11 +175,7 @@ export function loadFromStorage(): boolean {
 			hops: data.hops,
 			startedAt: new Date(data.startedAt),
 			isComplete: false,
-			isPlaying: true,
-			powerupSlots: data.powerupSlots,
-			activePowerup: null,
-			freeStepActive: data.freeStepActive,
-			powerupsUsed: data.powerupsUsed
+			isPlaying: true
 		};
 
 		return true;

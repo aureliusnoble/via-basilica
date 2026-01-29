@@ -230,17 +230,6 @@ body {
 	background-clip: padding-box;
 }
 
-/* Glow effect for active powerups */
-.powerup-active {
-	animation: pulse 2s infinite;
-	box-shadow: 0 0 0 2px var(--color-gold), 0 0 0 4px var(--bg-primary);
-}
-
-@keyframes pulse {
-	0%, 100% { opacity: 1; }
-	50% { opacity: 0.7; }
-}
-
 /* Safe area for mobile */
 @supports (padding-bottom: env(safe-area-inset-bottom)) {
 	.safe-bottom {

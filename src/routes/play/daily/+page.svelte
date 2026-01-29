@@ -10,7 +10,6 @@
 	import BreadcrumbTrail from '$lib/components/game/BreadcrumbTrail.svelte';
 	import WikiArticleView from '$lib/components/game/WikiArticleView.svelte';
 	import VictoryModal from '$lib/components/game/VictoryModal.svelte';
-	import PowerupSelectionScreen from '$lib/components/game/PowerupSelectionScreen.svelte';
 	import { getAuthState } from '$lib/state/auth.svelte.js';
 	import {
 		getGameState,
@@ -18,11 +17,8 @@
 		navigateTo,
 		loadFromStorage,
 		endGame,
-		activatePowerup,
-		clearActivePowerup,
 		getGameDuration
 	} from '$lib/state/game.svelte.js';
-	import { loadPlayerPowerups } from '$lib/state/player.svelte.js';
 	import { getTodaysChallenge } from '$lib/api/challenges.js';
 	import { getTodaysResult, completeGameResult, createGameResult, getUserDailyRank } from '$lib/api/game-results.js';
 	import { isTargetArticle } from '$lib/api/wikipedia.js';
@@ -35,7 +31,6 @@
 	let challenge = $state<DailyChallenge | null>(null);
 	let existingResult = $state<GameResult | null>(null);
 	let loading = $state(true);
-	let showPowerupSelection = $state(false);
 	let showVictory = $state(false);
 	let elapsedSeconds = $state(0);
 	let timerInterval = $state<ReturnType<typeof setInterval> | null>(null);
@@ -61,9 +56,6 @@
 					loading = false;
 					return;
 				}
-
-				// Load powerups for selection
-				await loadPlayerPowerups();
 			}
 
 			// Try to resume from storage
@@ -76,12 +68,8 @@
 					await handleVictory();
 				}
 			} else {
-				// Show powerup selection (or skip if not authenticated)
-				if (auth.isAuthenticated) {
-					showPowerupSelection = true;
-				} else {
-					await startNewGame([null, null]);
-				}
+				// Start game directly
+				await startNewGame();
 			}
 		} catch (error) {
 			console.error('Error loading daily challenge:', error);
@@ -104,10 +92,8 @@
 		}, 1000);
 	}
 
-	async function startNewGame(powerupSlots: [string | null, string | null]) {
+	async function startNewGame() {
 		if (!challenge) return;
-
-		showPowerupSelection = false;
 
 		// Create game result in database
 		if (auth.user) {
@@ -118,7 +104,7 @@
 		}
 
 		// Start local game state
-		startGame('daily', challenge.start_article, challenge.id, powerupSlots);
+		startGame('daily', challenge.start_article, challenge.id);
 		startTimer();
 	}
 
@@ -145,7 +131,6 @@
 					gameResultId,
 					game.state.path,
 					game.state.hops,
-					game.state.powerupsUsed,
 					finalDuration
 				);
 
@@ -159,25 +144,6 @@
 		}
 
 		showVictory = true;
-	}
-
-	function handleActivatePowerup(index: 0 | 1) {
-		const powerupId = game.powerupSlots[index];
-		if (!powerupId) return;
-
-		// For simple powerups like free-step
-		if (powerupId === 'free-step') {
-			activatePowerup(powerupId);
-			toast.success("Free Step activated! Your next click won't count.");
-		} else if (powerupId === 'undo') {
-			// Handle undo
-			// TODO: Implement undo
-			toast.info('Undo not yet implemented');
-		} else {
-			// For powerups that need UI (category-peek, preview, etc.)
-			activatePowerup(powerupId);
-			toast.info(`${powerupId} activated`);
-		}
 	}
 
 	function handleVictoryClose() {
@@ -225,19 +191,11 @@
 			</div>
 		</div>
 	</main>
-{:else if showPowerupSelection}
-	<PowerupSelectionScreen
-		onStart={startNewGame}
-		onSkip={() => startNewGame([null, null])}
-	/>
 {:else if game.isPlaying && challenge}
 	<!-- Game in progress -->
 	<GameHeader
 		hops={game.hops}
 		{elapsedSeconds}
-		powerupSlots={game.powerupSlots}
-		activePowerup={game.activePowerup}
-		onActivatePowerup={handleActivatePowerup}
 	/>
 
 	<BreadcrumbTrail path={game.path} currentArticle={game.currentArticle} />

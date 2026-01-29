@@ -1,5 +1,5 @@
 import { getSupabase } from './supabase.js';
-import type { GameResult, GameMode, PathStep, PowerupUsage } from '$lib/types/database.js';
+import type { GameResult, GameMode, PathStep } from '$lib/types/database.js';
 import { format } from 'date-fns';
 
 export async function createGameResult(
@@ -40,7 +40,7 @@ export async function updateGameResult(
 	updates: {
 		hops?: number;
 		path?: PathStep[];
-		powerups_used?: PowerupUsage[];
+		powerups_used?: any[];
 		completed_at?: string;
 		duration_seconds?: number;
 	}
@@ -61,7 +61,6 @@ export async function completeGameResult(
 	gameId: string,
 	finalPath: PathStep[],
 	hops: number,
-	powerupsUsed: PowerupUsage[],
 	durationSeconds: number
 ): Promise<{ success: boolean; verified: boolean; pointsAwarded: number }> {
 	const supabase = getSupabase();
@@ -72,7 +71,7 @@ export async function completeGameResult(
 		.update({
 			hops,
 			path: finalPath,
-			powerups_used: powerupsUsed,
+			powerups_used: [],
 			completed_at: new Date().toISOString(),
 			duration_seconds: durationSeconds
 		})

@@ -1,4 +1,4 @@
-import type { PathStep, PowerupUsage, GameMode } from './database.js';
+import type { PathStep, GameMode } from './database.js';
 
 export interface GameState {
 	mode: GameMode;
@@ -11,10 +11,6 @@ export interface GameState {
 	startedAt: Date;
 	isComplete: boolean;
 	isPlaying: boolean;
-	powerupSlots: [string | null, string | null];
-	activePowerup: string | null;
-	freeStepActive: boolean;
-	powerupsUsed: PowerupUsage[];
 }
 
 export interface StoredGameState {
@@ -27,9 +23,6 @@ export interface StoredGameState {
 	path: PathStep[];
 	hops: number;
 	startedAt: string;
-	powerupSlots: [string | null, string | null];
-	freeStepActive: boolean;
-	powerupsUsed: PowerupUsage[];
 }
 
 export interface VictoryData {
@@ -40,5 +33,3 @@ export interface VictoryData {
 	xpEarned: number;
 	challengeNumber: number;
 }
-
-export type PowerupSlotIndex = 0 | 1;

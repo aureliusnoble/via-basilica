@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { goto } from '$app/navigation';
 	import { base } from '$app/paths';
-	import { Gift, BookOpen } from 'lucide-svelte';
+	import { BookOpen } from 'lucide-svelte';
 	import Header from '$lib/components/layout/Header.svelte';
 	import Card from '$lib/components/ui/Card.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
@@ -108,15 +108,7 @@
 			</Card>
 
 			<!-- Quick links -->
-			<div class="grid grid-cols-2 gap-4">
-				<a href="{base}/powerups">
-					<Card padding="sm" class="text-center hover:ring-2 hover:ring-gold/50 transition-all">
-						<div class="flex justify-center mb-2">
-							<Gift size={28} class="text-gold" />
-						</div>
-						<p class="font-medium">Powerups</p>
-					</Card>
-				</a>
+			<div class="grid grid-cols-1 gap-4">
 				<button onclick={() => setShowBiographyModal(true)} class="text-left w-full">
 					<Card padding="sm" class="text-center hover:ring-2 hover:ring-gold/50 transition-all">
 						<div class="flex justify-center mb-2">

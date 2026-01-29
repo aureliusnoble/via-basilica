@@ -30,7 +30,7 @@
 		try {
 			const article = await fetchRandomArticle();
 			startArticle = article.title;
-			startGame('random', article.title, null, [null, null]);
+			startGame('random', article.title, null);
 			startTimer();
 		} catch (error) {
 			console.error('Error starting random game:', error);
@@ -80,7 +80,7 @@
 		try {
 			const article = await fetchRandomArticle();
 			startArticle = article.title;
-			startGame('random', article.title, null, [null, null]);
+			startGame('random', article.title, null);
 			startTimer();
 			showVictory = false;
 		} catch (error) {
@@ -88,10 +88,6 @@
 		} finally {
 			loading = false;
 		}
-	}
-
-	function handleActivatePowerup(index: 0 | 1) {
-		// Random mode doesn't use powerups
 	}
 </script>
 
@@ -107,9 +103,6 @@
 	<GameHeader
 		hops={game.hops}
 		{elapsedSeconds}
-		powerupSlots={[null, null]}
-		activePowerup={null}
-		onActivatePowerup={handleActivatePowerup}
 		backHref="/"
 	/>
 
