@@ -19,7 +19,7 @@
 	}
 </script>
 
-<Modal bind:open={ui.showDailyQuoteModal} onclose={close} size="md">
+<Modal open={ui.showDailyQuoteModal} onclose={close} size="md">
 	<div class="text-center">
 		<div class="mb-6">
 			<div class="w-16 h-16 mx-auto mb-4 rounded-full bg-gold/20 flex items-center justify-center">

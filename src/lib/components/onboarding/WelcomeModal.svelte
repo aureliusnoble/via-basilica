@@ -21,7 +21,7 @@
 	}
 </script>
 
-<Modal bind:open={ui.showWelcomeModal} closeable={false} size="md">
+<Modal open={ui.showWelcomeModal} closeable={false} size="md">
 	<div class="text-center">
 		{#if currentPage === 0}
 			<!-- Page 1: Welcome -->
