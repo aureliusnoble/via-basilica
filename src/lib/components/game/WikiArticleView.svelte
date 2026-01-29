@@ -3,7 +3,7 @@
 	import Spinner from '$lib/components/ui/Spinner.svelte';
 	import { fetchArticleHtml } from '$lib/api/wikipedia.js';
 	import { checkBlockedLinks, getArticleCategory } from '$lib/api/blocked-categories.js';
-	import { BLOCKED_CATEGORY_LINK_COLORS } from '$lib/utils/blocked-categories.js';
+	import { BLOCKED_CATEGORY_LINK_COLORS, BLOCKED_CATEGORY_BG_COLORS } from '$lib/utils/blocked-categories.js';
 
 	interface Props {
 		articleTitle: string;
@@ -264,7 +264,7 @@
 		<div class="flex items-center justify-between gap-3 mb-4 border-b border-bg-dark-tertiary pb-2">
 			<h1 class="text-2xl font-serif text-text-dark font-semibold">{articleTitle.replace(/_/g, ' ')}</h1>
 			{#if currentArticleCategory}
-				<span class="text-xs px-2 py-1 rounded-full bg-bg-dark-tertiary text-text-dark-muted whitespace-nowrap">
+				<span class="text-xs px-2 py-1 rounded-full border whitespace-nowrap {BLOCKED_CATEGORY_BG_COLORS[currentArticleCategory] || 'bg-bg-dark-tertiary text-text-dark-muted'}">
 					{currentArticleCategory}
 				</span>
 			{/if}
