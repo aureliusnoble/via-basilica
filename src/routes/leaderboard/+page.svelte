@@ -19,8 +19,8 @@
 	type DisplayEntry = { type: 'entry'; entry: LeaderboardEntry; rank: number } | { type: 'ellipsis' };
 
 	const TOP_COUNT = 3;
-	const CONTEXT_AROUND_USER = 2;
-	const MIN_ENTRIES_TO_COLLAPSE = 10;
+	const CONTEXT_AROUND_USER = 5;
+	const MIN_ENTRIES_TO_COLLAPSE = 20;
 
 	let activeTab = $state<LeaderboardType>('daily');
 	let entries = $state<LeaderboardEntry[]>([]);
