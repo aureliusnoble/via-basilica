@@ -1,435 +1,164 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { corsHeaders } from '../_shared/cors.ts';
 
-const WIKIPEDIA_API = 'https://en.wikipedia.org/w/api.php';
+// Import the pre-computed class mapping
+// This maps Wikidata class IDs (e.g., Q5) to our category names (e.g., "People")
+import CLASS_MAPPING from './class-to-category.json' with { type: 'json' };
 
-// Maximum depth to traverse up the category tree
-const MAX_CATEGORY_DEPTH = 6;
+const WIKIDATA_API = 'https://www.wikidata.org/w/api.php';
 
-// Our top-level categories mapped to Wikipedia category names
-// These are the actual Wikipedia categories we'll look for in the tree
-// More specific categories are listed to catch matches earlier in traversal
-const TOP_LEVEL_CATEGORIES: Record<string, string[]> = {
-	Religion: [
-		'Religion',
-		'Theology',
-		'Religious belief and doctrine',
-		'Spirituality',
-		'Deities',
-		'Religious faiths, traditions, and movements',
-		'Christianity',
-		'Islam',
-		'Buddhism',
-		'Hinduism',
-		'Judaism',
-		'Saints',
-		'Popes',
-		'Religious leaders',
-		// More specific categories to catch earlier
-		'Christian saints',
-		'Christian martyrs',
-		'Christians',
-		'Early Christianity',
-		'History of Christianity',
-		'Christian denominations',
-		'Catholic Church',
-		'Eastern Orthodox Church',
-		'Protestantism',
-		'Religious texts',
-		'Bible',
-		'Quran',
-		'Religious buildings',
-		'Churches',
-		'Mosques',
-		'Temples',
-		'Monasteries',
-		'Clergy',
-		'Bishops',
-		'Priests',
-		'Monks'
-	],
-	History: [
-		'History',
-		'History by period',
-		'History by region',
-		'Historical events',
-		'Ancient history',
-		'Medieval history',
-		'Modern history',
-		'Military history',
-		'Wars',
-		'Empires',
-		'Dynasties',
-		'Battles',
-		'Revolutions',
-		'Historical eras'
-	],
-	People: [
-		'People',
-		'Living people',
-		'Births',
-		'Deaths',
-		'People by occupation',
-		'People by nationality'
-	],
-	Philosophy: [
-		'Philosophy',
-		'Philosophical theories',
-		'Philosophical concepts',
-		'Philosophers',
-		'Ethics',
-		'Logic',
-		'Metaphysics',
-		'Epistemology',
-		'Philosophy by topic'
-	],
-	Culture: [
-		'Culture',
-		'Cultural heritage',
-		'Traditions',
-		'Folklore',
-		'Mythology',
-		'Customs',
-		'Festivals',
-		'Cultural events',
-		'Myths',
-		'Legends'
-	],
-	Education: [
-		'Education',
-		'Educational institutions',
-		'Universities and colleges',
-		'Schools',
-		'Academia',
-		'Academic disciplines',
-		'Universities',
-		'Colleges'
-	],
-	Society: [
-		'Society',
-		'Social groups',
-		'Organizations',
-		'Social movements',
-		'Communities',
-		'Social institutions'
-	],
-	Geography: [
-		'Geography',
-		'Countries',
-		'Cities',
-		'Capitals',
-		'Continents',
-		'Regions',
-		'Rivers',
-		'Mountains',
-		'Islands',
-		'Oceans',
-		'Seas',
-		'Lakes',
-		'Places',
-		'Populated places',
-		'Countries by continent',
-		'Cities by country',
-		'Landforms',
-		'Bodies of water'
-	],
-	Humanities: [
-		'Humanities',
-		'Arts',
-		'Literature',
-		'Linguistics',
-		'Visual arts',
-		'Performing arts',
-		'Music',
-		'Theatre',
-		'Dance',
-		'Film'
-	],
-	Language: [
-		'Language',
-		'Languages',
-		'Linguistics',
-		'Grammar',
-		'Writing systems',
-		'Languages by family'
-	],
-	Government: [
-		'Government',
-		'Politics',
-		'Political systems',
-		'Heads of state',
-		'Politicians',
-		'Elections',
-		'Parliaments',
-		'Democracy',
-		'Heads of government',
-		'Political parties'
-	],
-	Law: [
-		'Law',
-		'Legal concepts',
-		'Courts',
-		'Judges',
-		'Crime',
-		'Criminal law',
-		'Constitutional law',
-		'Legal systems',
-		'Lawyers'
-	]
-};
+// Batch size for Wikidata API calls (max 50)
+const WIKIDATA_BATCH_SIZE = 50;
 
-// Build a reverse lookup: Wikipedia category -> our top-level category
-const CATEGORY_TO_TOP_LEVEL: Record<string, string> = {};
-for (const [topLevel, wikiCategories] of Object.entries(TOP_LEVEL_CATEGORIES)) {
-	for (const wikiCat of wikiCategories) {
-		CATEGORY_TO_TOP_LEVEL[wikiCat.toLowerCase()] = topLevel;
+// Cache duration in days
+const CACHE_DURATION_DAYS = 30;
+
+// Initialize Supabase client for caching
+function getSupabaseClient() {
+	const supabaseUrl = Deno.env.get('SUPABASE_URL');
+	const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+
+	if (!supabaseUrl || !supabaseKey) {
+		return null;
 	}
+
+	return createClient(supabaseUrl, supabaseKey);
 }
 
-// Cache for category -> top-level mappings (persists during request)
-const categoryCache: Record<string, string | null> = {};
-
-// Check if a category name matches one of our top-level categories
-// Uses both exact match and containment check (with word boundaries)
-function checkDirectMatch(categoryName: string): string | null {
-	const lowerName = categoryName.toLowerCase();
-
-	// First try exact match
-	if (CATEGORY_TO_TOP_LEVEL[lowerName]) {
-		return CATEGORY_TO_TOP_LEVEL[lowerName];
-	}
-
-	// Then check if the category contains any of our target categories
-	// Use word boundary matching to avoid false positives
-	for (const [topLevel, wikiCategories] of Object.entries(TOP_LEVEL_CATEGORIES)) {
-		for (const wikiCat of wikiCategories) {
-			const lowerCat = wikiCat.toLowerCase();
-			// Check if the category name contains this target as a word/phrase
-			// e.g., "Christian saints from the New Testament" contains "Christian saints"
-			if (lowerName.includes(lowerCat)) {
-				// Verify it's at a word boundary (not part of another word)
-				const index = lowerName.indexOf(lowerCat);
-				const beforeChar = index > 0 ? lowerName[index - 1] : ' ';
-				const afterChar = index + lowerCat.length < lowerName.length
-					? lowerName[index + lowerCat.length]
-					: ' ';
-				// Check if surrounded by non-alphanumeric chars (word boundaries)
-				if (!/[a-z0-9]/.test(beforeChar) && !/[a-z0-9]/.test(afterChar)) {
-					return topLevel;
-				}
-			}
-		}
-	}
-
-	return null;
-}
-
-// Fetch parent categories for a list of categories
-async function fetchParentCategories(categoryNames: string[]): Promise<Record<string, string[]>> {
-	if (categoryNames.length === 0) return {};
-
-	const titles = categoryNames.map(name =>
-		name.startsWith('Category:') ? name : `Category:${name}`
-	);
-
-	const params = new URLSearchParams({
-		action: 'query',
-		prop: 'categories',
-		titles: titles.join('|'),
-		cllimit: '50',
-		clshow: '!hidden',
-		format: 'json'
-	});
-
-	const response = await fetch(`${WIKIPEDIA_API}?${params}`);
-	const data = await response.json();
-
-	const result: Record<string, string[]> = {};
-	const pages = data.query?.pages;
-	if (!pages) return result;
-
-	for (const pageId of Object.keys(pages)) {
-		const page = pages[pageId];
-		if (page.title && page.categories) {
-			const categoryName = page.title.replace('Category:', '');
-			result[categoryName] = page.categories.map(
-				(cat: { title: string }) => cat.title.replace('Category:', '')
-			);
-		}
-	}
-
-	return result;
-}
-
-// Traverse up the category tree using BFS to find the closest top-level category match
-async function findTopLevelCategory(categoryName: string): Promise<string | null> {
-	// Check cache first
-	if (categoryName in categoryCache) {
-		return categoryCache[categoryName];
-	}
-
-	// Check for direct match
-	const directMatch = checkDirectMatch(categoryName);
-	if (directMatch) {
-		categoryCache[categoryName] = directMatch;
-		return directMatch;
-	}
-
-	// BFS: queue of categories to check, with their depth
-	const queue: Array<{ name: string; depth: number }> = [{ name: categoryName, depth: 0 }];
-	const visited = new Set<string>([categoryName]);
-
-	while (queue.length > 0) {
-		// Process categories at the current depth level
-		const currentDepth = queue[0].depth;
-		const currentLevel: string[] = [];
-
-		// Gather all categories at this depth
-		while (queue.length > 0 && queue[0].depth === currentDepth) {
-			currentLevel.push(queue.shift()!.name);
-		}
-
-		// Stop if we've gone too deep
-		if (currentDepth >= MAX_CATEGORY_DEPTH) {
-			break;
-		}
-
-		// Fetch parent categories for all categories at this level (batch)
-		const parentsMap = await fetchParentCategories(currentLevel);
-
-		// Check all parents for direct matches first
-		for (const cat of currentLevel) {
-			const parents = parentsMap[cat] || [];
-			for (const parent of parents) {
-				const match = checkDirectMatch(parent);
-				if (match) {
-					// Found a match - cache it for the original category and return
-					categoryCache[categoryName] = match;
-					categoryCache[cat] = match;
-					categoryCache[parent] = match;
-					return match;
-				}
-			}
-		}
-
-		// No matches at this level - add all unvisited parents to the queue
-		for (const cat of currentLevel) {
-			const parents = parentsMap[cat] || [];
-			for (const parent of parents) {
-				if (!visited.has(parent)) {
-					visited.add(parent);
-					queue.push({ name: parent, depth: currentDepth + 1 });
-				}
-			}
-		}
-	}
-
-	// No match found
-	categoryCache[categoryName] = null;
-	return null;
-}
-
-// Fetch direct categories for multiple articles in batch (max 50 per request)
-async function fetchCategoriesForArticles(
-	titles: string[],
-	inputTitles: string[]
+// Fetch P31 values from Wikidata for a batch of Wikipedia titles
+async function fetchP31FromWikidata(
+	titles: string[]
 ): Promise<Record<string, string[]>> {
+	const normalizedTitles = titles.map((t) => t.replace(/ /g, '_'));
+
 	const params = new URLSearchParams({
-		action: 'query',
-		prop: 'categories',
-		titles: titles.join('|'),
-		cllimit: '50',
-		clshow: '!hidden',
+		action: 'wbgetentities',
+		sites: 'enwiki',
+		titles: normalizedTitles.join('|'),
+		props: 'claims|sitelinks',
 		format: 'json',
-		redirects: '1'
+		origin: '*'
 	});
 
-	const response = await fetch(`${WIKIPEDIA_API}?${params}`);
-	const data = await response.json();
+	try {
+		const response = await fetch(`${WIKIDATA_API}?${params}`);
+		const data = await response.json();
 
-	const result: Record<string, string[]> = {};
+		const results: Record<string, string[]> = {};
+		const entities = data.entities || {};
 
-	// Build a map from normalized titles to input titles
-	const normalizedToInput: Record<string, string> = {};
-	for (const title of inputTitles) {
-		const normalized = title.charAt(0).toUpperCase() + title.slice(1);
-		normalizedToInput[normalized] = title;
-		normalizedToInput[title] = title;
-	}
-
-	// Handle redirects
-	const redirectMap: Record<string, string> = {};
-	if (data.query?.redirects) {
-		for (const redirect of data.query.redirects) {
-			redirectMap[redirect.to] = redirect.from;
-		}
-	}
-
-	// Handle normalized titles
-	if (data.query?.normalized) {
-		for (const norm of data.query.normalized) {
-			normalizedToInput[norm.to] = norm.from;
-		}
-	}
-
-	const pages = data.query?.pages;
-	if (!pages) return result;
-
-	for (const pageId of Object.keys(pages)) {
-		const page = pages[pageId];
-		if (page.title) {
-			const categories = page.categories?.map(
-				(cat: { title: string }) => cat.title.replace('Category:', '')
-			) || [];
-
-			let originalTitle = page.title;
-			if (redirectMap[page.title]) {
-				originalTitle = redirectMap[page.title];
-			}
-			if (normalizedToInput[originalTitle]) {
-				originalTitle = normalizedToInput[originalTitle];
+		for (const [id, entity] of Object.entries(entities)) {
+			// Skip missing entities
+			if (id.startsWith('-') || (entity as { missing?: boolean }).missing) {
+				continue;
 			}
 
-			result[originalTitle] = categories;
-			if (originalTitle !== page.title) {
-				result[page.title] = categories;
-			}
-		}
-	}
+			// Get the Wikipedia title from sitelinks
+			const typedEntity = entity as {
+				sitelinks?: { enwiki?: { title: string } };
+				claims?: { P31?: Array<{ mainsnak?: { datavalue?: { value?: { id: string } } } }> };
+			};
+			const sitelink = typedEntity.sitelinks?.enwiki;
+			const title = sitelink?.title;
+			if (!title) continue;
 
-	return result;
+			// Extract P31 (instance of) values
+			const claims = typedEntity.claims?.P31 || [];
+			const p31Values = claims
+				.map((c) => c?.mainsnak?.datavalue?.value?.id)
+				.filter((id): id is string => Boolean(id));
+
+			results[title] = p31Values;
+		}
+
+		return results;
+	} catch (error) {
+		console.error('Error fetching from Wikidata:', error);
+		return {};
+	}
 }
 
-// Check which articles belong to blocked categories using tree traversal
-async function checkBlockedArticles(
-	articleCategories: Record<string, string[]>,
-	blockedCategories: string[]
-): Promise<Record<string, string | null>> {
-	const result: Record<string, string | null> = {};
+// Check Supabase cache for P31 values
+async function checkCache(
+	supabase: ReturnType<typeof createClient>,
+	titles: string[]
+): Promise<{ cached: Record<string, string[]>; uncached: string[] }> {
+	const cached: Record<string, string[]> = {};
+	const uncached: string[] = [];
 
-	for (const [title, categories] of Object.entries(articleCategories)) {
-		let blockedCategory: string | null = null;
+	try {
+		const { data, error } = await supabase
+			.from('article_p31')
+			.select('title, p31_classes, fetched_at')
+			.in('title', titles);
 
-		for (const cat of categories) {
-			// First check for direct match (fast path)
-			const directMatch = checkDirectMatch(cat);
-			if (directMatch && blockedCategories.includes(directMatch)) {
-				blockedCategory = directMatch;
-				break;
-			}
+		if (error) {
+			console.error('Cache read error:', error);
+			return { cached: {}, uncached: titles };
+		}
 
-			// Otherwise traverse up the tree
-			const topLevel = await findTopLevelCategory(cat);
-			if (topLevel && blockedCategories.includes(topLevel)) {
-				blockedCategory = topLevel;
-				break;
+		const now = new Date();
+		const cacheValidUntil = new Date(
+			now.getTime() - CACHE_DURATION_DAYS * 24 * 60 * 60 * 1000
+		);
+
+		// Build a set of cached titles
+		const cachedTitles = new Set<string>();
+		for (const row of data || []) {
+			const fetchedAt = new Date(row.fetched_at);
+			if (fetchedAt >= cacheValidUntil) {
+				cached[row.title] = row.p31_classes;
+				cachedTitles.add(row.title);
 			}
 		}
 
-		result[title] = blockedCategory;
-	}
+		// Find uncached titles
+		for (const title of titles) {
+			if (!cachedTitles.has(title)) {
+				uncached.push(title);
+			}
+		}
 
-	return result;
+		return { cached, uncached };
+	} catch (error) {
+		console.error('Cache error:', error);
+		return { cached: {}, uncached: titles };
+	}
+}
+
+// Store P31 values in cache (fire and forget)
+async function updateCache(
+	supabase: ReturnType<typeof createClient>,
+	p31Values: Record<string, string[]>
+): Promise<void> {
+	try {
+		const rows = Object.entries(p31Values).map(([title, p31_classes]) => ({
+			title,
+			p31_classes,
+			fetched_at: new Date().toISOString()
+		}));
+
+		// Upsert to handle existing entries
+		await supabase.from('article_p31').upsert(rows, { onConflict: 'title' });
+	} catch (error) {
+		// Don't fail the request if cache update fails
+		console.error('Cache update error:', error);
+	}
+}
+
+// Classify an article based on its P31 values using the pre-computed mapping
+function classifyArticle(
+	p31Values: string[],
+	blockedCategories: string[]
+): string | null {
+	for (const classId of p31Values) {
+		const category = (CLASS_MAPPING as Record<string, string>)[classId];
+		if (category && blockedCategories.includes(category)) {
+			return category;
+		}
+	}
+	return null;
 }
 
 serve(async (req) => {
@@ -451,32 +180,63 @@ serve(async (req) => {
 			);
 		}
 
-		// Clear cache for new request
-		Object.keys(categoryCache).forEach(key => delete categoryCache[key]);
-
-		// Batch titles into groups of 50 (Wikipedia API limit)
-		const batches: string[][] = [];
-		for (let i = 0; i < titles.length; i += 50) {
-			batches.push(titles.slice(i, i + 50));
+		if (titles.length === 0 || blockedCategories.length === 0) {
+			return new Response(JSON.stringify({ blockedLinks: {} }), {
+				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+			});
 		}
 
-		// Fetch categories for all batches
-		const allCategories: Record<string, string[]> = {};
-		for (const batch of batches) {
-			const batchCategories = await fetchCategoriesForArticles(batch, batch);
-			Object.assign(allCategories, batchCategories);
+		const supabase = getSupabaseClient();
+		let allP31Values: Record<string, string[]> = {};
+
+		// Step 1: Check cache for existing P31 values
+		let uncachedTitles = titles;
+		if (supabase) {
+			const cacheResult = await checkCache(supabase, titles);
+			allP31Values = { ...cacheResult.cached };
+			uncachedTitles = cacheResult.uncached;
 		}
 
-		// Check which articles are blocked (with tree traversal)
-		const blockedLinks = await checkBlockedArticles(allCategories, blockedCategories);
+		// Step 2: Fetch P31 values from Wikidata for uncached titles
+		if (uncachedTitles.length > 0) {
+			const fetchedP31: Record<string, string[]> = {};
+
+			// Process in batches of 50 (Wikidata API limit)
+			for (let i = 0; i < uncachedTitles.length; i += WIKIDATA_BATCH_SIZE) {
+				const batch = uncachedTitles.slice(i, i + WIKIDATA_BATCH_SIZE);
+				const batchResults = await fetchP31FromWikidata(batch);
+				Object.assign(fetchedP31, batchResults);
+			}
+
+			// Merge fetched results
+			Object.assign(allP31Values, fetchedP31);
+
+			// Step 3: Update cache in background (don't await)
+			if (supabase && Object.keys(fetchedP31).length > 0) {
+				updateCache(supabase, fetchedP31);
+			}
+		}
+
+		// Step 4: Classify articles and identify blocked ones
+		const blockedLinks: Record<string, string | null> = {};
+
+		for (const title of titles) {
+			const p31Values = allP31Values[title] || allP31Values[title.replace(/ /g, '_')] || [];
+			const blockedCategory = classifyArticle(p31Values, blockedCategories);
+			blockedLinks[title] = blockedCategory;
+		}
 
 		return new Response(JSON.stringify({ blockedLinks }), {
 			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
 		});
 	} catch (error) {
-		return new Response(JSON.stringify({ error: error.message }), {
-			status: 500,
-			headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-		});
+		console.error('Edge function error:', error);
+		return new Response(
+			JSON.stringify({ error: (error as Error).message }),
+			{
+				status: 500,
+				headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+			}
+		);
 	}
 });

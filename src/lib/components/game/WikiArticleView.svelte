@@ -28,6 +28,12 @@
 	let containerRef = $state<HTMLElement | null>(null);
 	let currentlyLoadedTitle = $state('');
 
+	// Link checking progress state
+	let isCheckingLinks = $state(false);
+	let totalLinks = $state(0);
+	let checkedLinks = $state(0);
+	let checkProgress = $derived(totalLinks > 0 ? Math.round((checkedLinks / totalLinks) * 100) : 0);
+
 	$effect(() => {
 		// Only load if the title has actually changed
 		if (articleTitle && articleTitle !== currentlyLoadedTitle) {
@@ -92,14 +98,37 @@
 
 		if (linkTitles.length === 0) return;
 
-		// Check which links are blocked
-		const blockedLinksMap = await checkBlockedLinks(linkTitles, blockedCategories);
+		// Show progress bar
+		isCheckingLinks = true;
+		totalLinks = linkTitles.length;
+		checkedLinks = 0;
 
-		// Only update if still the same article
-		if (title !== currentlyLoadedTitle || !containerRef) return;
+		// Process links in batches to show progress
+		const BATCH_SIZE = 50;
+		const allBlockedLinks: Record<string, string | null> = {};
+
+		for (let i = 0; i < linkTitles.length; i += BATCH_SIZE) {
+			const batch = linkTitles.slice(i, i + BATCH_SIZE);
+
+			// Check which links are blocked
+			const blockedLinksMap = await checkBlockedLinks(batch, blockedCategories);
+			Object.assign(allBlockedLinks, blockedLinksMap);
+
+			// Update progress
+			checkedLinks = Math.min(i + BATCH_SIZE, linkTitles.length);
+
+			// Only update if still the same article
+			if (title !== currentlyLoadedTitle || !containerRef) {
+				isCheckingLinks = false;
+				return;
+			}
+		}
+
+		// Hide progress bar
+		isCheckingLinks = false;
 
 		// Apply styles to blocked links via DOM manipulation
-		for (const [linkTitle, blockedCategory] of Object.entries(blockedLinksMap)) {
+		for (const [linkTitle, blockedCategory] of Object.entries(allBlockedLinks)) {
 			if (!blockedCategory) continue;
 
 			const elements = linkMap.get(linkTitle) || linkMap.get(linkTitle.replace(/ /g, '_'));
@@ -196,6 +225,22 @@
 		</div>
 	{:else}
 		<h1 class="text-2xl font-serif text-text-dark font-semibold mb-4 border-b border-bg-dark-tertiary pb-2">{articleTitle.replace(/_/g, ' ')}</h1>
+
+		{#if isCheckingLinks}
+			<div class="mb-4 p-3 bg-bg-dark-secondary rounded-lg">
+				<div class="flex items-center justify-between mb-2">
+					<span class="text-sm text-text-dark-muted">Checking links...</span>
+					<span class="text-sm text-text-dark-muted">{checkedLinks}/{totalLinks}</span>
+				</div>
+				<div class="progress-bar h-2">
+					<div
+						class="progress-bar-fill transition-all duration-300"
+						style="width: {checkProgress}%"
+					></div>
+				</div>
+			</div>
+		{/if}
+
 		{@html content}
 	{/if}
 </div>
