@@ -66,10 +66,8 @@ export async function checkBlockedLinks(
 	blockedCategories: string[]
 ): Promise<BlockedLinksMap> {
 	if (!browser || blockedCategories.length === 0 || titles.length === 0) {
-		console.log('[BlockedCategories] Early return:', { browser, blockedCategories, titlesCount: titles.length });
 		return {};
 	}
-	console.log(`[BlockedCategories] Checking ${titles.length} titles...`);
 
 	const cache = getCache();
 	const result: BlockedLinksMap = {};
@@ -99,8 +97,6 @@ export async function checkBlockedLinks(
 	}
 
 	try {
-		console.log(`[BlockedCategories] Checking ${uncachedTitles.length} uncached titles with categories:`, blockedCategories);
-
 		const { data, error } = await supabase.functions.invoke('check-article-categories', {
 			body: {
 				titles: uncachedTitles,
@@ -114,10 +110,6 @@ export async function checkBlockedLinks(
 		}
 
 		const blockedLinks: BlockedLinksMap = data?.blockedLinks || {};
-
-		// Log how many were blocked
-		const blockedCount = Object.values(blockedLinks).filter(v => v !== null).length;
-		console.log(`[BlockedCategories] Result: ${blockedCount}/${uncachedTitles.length} blocked`);
 
 		// Update cache and result
 		const now = Date.now();

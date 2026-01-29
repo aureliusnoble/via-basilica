@@ -67,11 +67,8 @@
 			// If we have blocked categories, check links in background and apply styles via DOM
 			// Wait for Svelte to render the HTML to the DOM before querying it
 			await tick();
-			console.log('[WikiArticleView] Article loaded. blockedCategories:', blockedCategories, 'containerRef:', !!containerRef);
 			if (blockedCategories.length > 0 && containerRef) {
 				applyBlockedStylesAsync(title);
-			} else {
-				console.log('[WikiArticleView] Skipping blocked check: blockedCategories.length=', blockedCategories.length, 'containerRef=', !!containerRef);
 			}
 		} catch (err) {
 			if (title === currentlyLoadedTitle) {
@@ -83,11 +80,7 @@
 	}
 
 	async function applyBlockedStylesAsync(title: string) {
-		console.log('[WikiArticleView] applyBlockedStylesAsync called for:', title, 'blockedCategories:', blockedCategories);
-		if (!containerRef) {
-			console.log('[WikiArticleView] containerRef is null, returning');
-			return;
-		}
+		if (!containerRef) return;
 
 		// Extract link titles from current DOM
 		const links = containerRef.querySelectorAll('a[data-wiki-link]');
@@ -106,7 +99,6 @@
 			}
 		});
 
-		console.log('[WikiArticleView] Found', linkTitles.length, 'wiki links to check');
 		if (linkTitles.length === 0) return;
 
 		// Show progress bar
@@ -114,25 +106,35 @@
 		totalLinks = linkTitles.length;
 		checkedLinks = 0;
 
-		// Process links in batches to show progress
+		// Process ALL batches in parallel for speed
 		const BATCH_SIZE = 50;
 		const allBlockedLinks: Record<string, string | null> = {};
+		const batches: string[][] = [];
 
 		for (let i = 0; i < linkTitles.length; i += BATCH_SIZE) {
-			const batch = linkTitles.slice(i, i + BATCH_SIZE);
+			batches.push(linkTitles.slice(i, i + BATCH_SIZE));
+		}
 
-			// Check which links are blocked
-			const blockedLinksMap = await checkBlockedLinks(batch, blockedCategories);
-			Object.assign(allBlockedLinks, blockedLinksMap);
+		// Fire all batch requests in parallel
+		const batchPromises = batches.map(async (batch, index) => {
+			const result = await checkBlockedLinks(batch, blockedCategories);
+			// Update progress as each batch completes
+			checkedLinks += batch.length;
+			return result;
+		});
 
-			// Update progress
-			checkedLinks = Math.min(i + BATCH_SIZE, linkTitles.length);
+		// Wait for all batches to complete
+		const results = await Promise.all(batchPromises);
 
-			// Only update if still the same article
-			if (title !== currentlyLoadedTitle || !containerRef) {
-				isCheckingLinks = false;
-				return;
-			}
+		// Check if still the same article
+		if (title !== currentlyLoadedTitle || !containerRef) {
+			isCheckingLinks = false;
+			return;
+		}
+
+		// Merge all results
+		for (const result of results) {
+			Object.assign(allBlockedLinks, result);
 		}
 
 		// Hide progress bar
