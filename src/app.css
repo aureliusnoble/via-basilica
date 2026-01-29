@@ -357,3 +357,19 @@ html.light .ring-offset-bg-dark {
 	border-color: rgba(212, 175, 55, 0.3);
 	transform: translateY(-2px);
 }
+
+/* Chevron pulse animation for leaderboard */
+.chevron-pulse {
+	animation: chevron-pulse 2s ease-in-out infinite;
+}
+
+@keyframes chevron-pulse {
+	0%, 100% {
+		opacity: 1;
+		transform: scale(1);
+	}
+	50% {
+		opacity: 0.6;
+		transform: scale(1.15);
+	}
+}
