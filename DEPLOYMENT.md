@@ -369,6 +369,52 @@ curl -X POST https://YOUR_PROJECT_REF.supabase.co/functions/v1/generate-daily-ch
   -H "Content-Type: application/json"
 ```
 
+### Step 5: Bulk Generate Puzzles (Recommended)
+
+To avoid relying solely on pg_cron, you can pre-generate puzzles for an entire year:
+
+1. Add your service role key to `.env`:
+   ```bash
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
+
+2. Run the bulk generation script:
+   ```bash
+   # Generate next 365 days of puzzles
+   npm run generate-puzzles
+
+   # Or with custom options:
+   npm run generate-puzzles -- --days=365 --start=2025-01-30
+
+   # Preview what would be generated (dry run)
+   npm run generate-puzzles -- --dry-run
+   ```
+
+**Script options:**
+- `--days=N` - Number of days to generate (default: 365)
+- `--start=DATE` - Start date in YYYY-MM-DD format (default: today)
+- `--delay=MS` - Delay between requests in ms (default: 2000)
+- `--dry-run` - Preview without making requests
+
+The script will skip dates that already have puzzles, so it's safe to re-run.
+
+### Step 6: Automate Annual Generation (GitHub Actions)
+
+A GitHub Actions workflow is included to automatically regenerate puzzles each year.
+
+1. Add the service role key as a GitHub secret:
+   - Go to **Settings** → **Secrets and variables** → **Actions**
+   - Click **New repository secret**
+   - Name: `SUPABASE_SERVICE_ROLE_KEY`
+   - Value: Your service role key from Supabase Dashboard
+
+2. The workflow runs automatically on January 1st each year.
+
+3. You can also trigger it manually:
+   - Go to **Actions** → **Generate Daily Puzzles**
+   - Click **Run workflow**
+   - Optionally specify days and start date
+
 ---
 
 ## GitHub Pages Deployment

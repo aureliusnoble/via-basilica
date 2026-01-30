@@ -5,6 +5,14 @@ export function getQuoteForChallenge(challengeNumber: number): string {
 	return quotes[index];
 }
 
+export function getDailyQuote(): string {
+	// Calculate a consistent daily index based on days since epoch
+	const today = new Date();
+	const daysSinceEpoch = Math.floor(today.getTime() / (1000 * 60 * 60 * 24));
+	const index = daysSinceEpoch % quotes.length;
+	return quotes[index];
+}
+
 export function getRandomQuote(): string {
 	const index = Math.floor(Math.random() * quotes.length);
 	return quotes[index];

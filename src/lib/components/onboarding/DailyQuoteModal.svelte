@@ -2,16 +2,10 @@
 	import Modal from '$lib/components/ui/Modal.svelte';
 	import Button from '$lib/components/ui/Button.svelte';
 	import { getUIState, setShowDailyQuoteModal } from '$lib/state/ui.svelte.js';
-	import { getQuoteForChallenge } from '$lib/utils/quotes.js';
-
-	interface Props {
-		challengeNumber?: number;
-	}
-
-	let { challengeNumber = 1 }: Props = $props();
+	import { getDailyQuote } from '$lib/utils/quotes.js';
 
 	const ui = getUIState();
-	const quote = $derived(getQuoteForChallenge(challengeNumber));
+	const quote = getDailyQuote();
 
 	function close() {
 		console.log('[DailyQuoteModal] Close button clicked');
